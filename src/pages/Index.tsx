@@ -8,14 +8,7 @@ import { TeamModule } from "@/components/modules/TeamModule";
 import { SettingsModule } from "@/components/modules/SettingsModule";
 import { useAuth } from "@/hooks/useAuth";
 import { GoalsRaceModule } from "@/components/modules/GoalsRaceModule";
-
-// Placeholder components for new modules
-const RankingModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Ranking</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
+import RankingModule from "@/components/modules/RankingModule";
 
 const TrainingModule = () => (
   <div className="text-center py-12">
