@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Dashboard } from "@/components/dashboard/Dashboard";
@@ -10,6 +11,7 @@ import { GovernanceSystem } from "@/components/modules/GovernanceSystem";
 import { PeopleOpsSystem } from "@/components/modules/PeopleOpsSystem";
 import { TeamModule } from "@/components/modules/TeamModule";
 import { SettingsModule } from "@/components/modules/SettingsModule";
+import { useAuth } from "@/hooks/useAuth";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
@@ -24,9 +26,27 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
 };
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, loading, signOut } = useAuth();
   const [activeItem, setActiveItem] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const currentPage = pageTitles[activeItem] || pageTitles.dashboard;
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
+
+  const handleItemClick = async (id: string) => {
+    if (id === "logout") {
+      await signOut();
+      navigate("/auth");
+      return;
+    }
+    setActiveItem(id);
+  };
 
   const renderContent = () => {
     switch (activeItem) {
@@ -53,12 +73,24 @@ const Index = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Sidebar */}
       <Sidebar 
         activeItem={activeItem} 
-        onItemClick={setActiveItem}
+        onItemClick={handleItemClick}
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
       />
