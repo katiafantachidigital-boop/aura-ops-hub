@@ -290,73 +290,161 @@ export function TrainingModule() {
   const handleFileUpload = async (file: File): Promise<string | null> => {
     setUploadingFile(true);
     
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${crypto.randomUUID()}.${fileExt}`;
-    const filePath = `contents/${fileName}`;
-
-    const { error } = await supabase.storage
-      .from("training-content")
-      .upload(filePath, file);
-
-    if (error) {
-      toast.error("Erro ao fazer upload do arquivo");
-      console.error(error);
+    // Validate file size (max 50MB)
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("Arquivo muito grande. Máximo 50MB");
       setUploadingFile(false);
       return null;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from("training-content")
-      .getPublicUrl(filePath);
+    // Validate file type
+    const allowedTypes: Record<string, string[]> = {
+      video: ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/mpeg'],
+      audio: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a', 'audio/x-m4a'],
+      document: [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ]
+    };
 
-    setUploadingFile(false);
-    return publicUrl;
+    const contentType = newContent.content_type;
+    const validTypes = allowedTypes[contentType] || [];
+    
+    // Check by extension if MIME type is not recognized
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+    const validExtensions: Record<string, string[]> = {
+      video: ['mp4', 'mov', 'avi', 'webm', 'mpeg'],
+      audio: ['mp3', 'wav', 'ogg', 'm4a'],
+      document: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx']
+    };
+
+    const isValidType = validTypes.includes(file.type) || validExtensions[contentType]?.includes(fileExt);
+    
+    if (!isValidType) {
+      toast.error(`Tipo de arquivo não suportado para ${contentType}`);
+      setUploadingFile(false);
+      return null;
+    }
+
+    try {
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `contents/${fileName}`;
+
+      console.log('Uploading file:', { fileName, filePath, type: file.type, size: file.size });
+
+      const { error: uploadError } = await supabase.storage
+        .from("training-content")
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        if (uploadError.message.includes('security') || uploadError.message.includes('policy')) {
+          toast.error("Sem permissão para fazer upload. Verifique se você está logado como gestora.");
+        } else if (uploadError.message.includes('Bucket not found')) {
+          toast.error("Bucket de storage não encontrado. Contate o suporte.");
+        } else {
+          toast.error(`Erro no upload: ${uploadError.message}`);
+        }
+        setUploadingFile(false);
+        return null;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("training-content")
+        .getPublicUrl(filePath);
+
+      console.log('Upload successful, URL:', publicUrl);
+      setUploadingFile(false);
+      return publicUrl;
+    } catch (err) {
+      console.error('Upload exception:', err);
+      toast.error("Erro inesperado ao fazer upload");
+      setUploadingFile(false);
+      return null;
+    }
   };
 
   const handleCreateContent = async (file?: File) => {
-    if (!selectedModule || !newContent.title) {
+    if (!selectedModule) {
+      toast.error("Nenhum módulo selecionado");
+      return;
+    }
+    
+    if (!newContent.title.trim()) {
       toast.error("Título é obrigatório");
       return;
     }
 
-    let contentUrl = null;
-    if (file && newContent.content_type !== "text") {
-      contentUrl = await handleFileUpload(file);
-      if (!contentUrl) return;
-    }
+    setUploadingFile(true);
 
-    const existingContents = contents[selectedModule.id] || [];
-    const maxOrder = existingContents.length > 0 
-      ? Math.max(...existingContents.map(c => c.order_index)) 
-      : -1;
+    try {
+      let contentUrl: string | null = null;
+      
+      if (file && newContent.content_type !== "text") {
+        contentUrl = await handleFileUpload(file);
+        if (!contentUrl) {
+          setUploadingFile(false);
+          return;
+        }
+      }
 
-    const { data, error } = await supabase
-      .from("training_contents")
-      .insert({
-        module_id: selectedModule.id,
+      const existingContents = contents[selectedModule.id] || [];
+      const maxOrder = existingContents.length > 0 
+        ? Math.max(...existingContents.map(c => c.order_index)) 
+        : -1;
+
+      console.log('Creating content:', { 
+        module_id: selectedModule.id, 
         title: newContent.title,
-        description: newContent.description,
         content_type: newContent.content_type,
-        content_url: contentUrl,
-        content_text: newContent.content_type === "text" ? newContent.content_text : null,
-        order_index: maxOrder + 1,
-      })
-      .select()
-      .single();
+        content_url: contentUrl 
+      });
 
-    if (error) {
-      toast.error("Erro ao criar conteúdo");
-      console.error(error);
-      return;
+      const { data, error } = await supabase
+        .from("training_contents")
+        .insert({
+          module_id: selectedModule.id,
+          title: newContent.title.trim(),
+          description: newContent.description?.trim() || null,
+          content_type: newContent.content_type,
+          content_url: contentUrl,
+          content_text: newContent.content_type === "text" ? newContent.content_text : null,
+          order_index: maxOrder + 1,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Content creation error:', error);
+        if (error.message.includes('security') || error.message.includes('policy')) {
+          toast.error("Sem permissão para criar conteúdo. Verifique se você está logado como gestora.");
+        } else {
+          toast.error(`Erro ao criar conteúdo: ${error.message}`);
+        }
+        setUploadingFile(false);
+        return;
+      }
+
+      toast.success("Conteúdo adicionado com sucesso!");
+      setContents(prev => ({
+        ...prev,
+        [selectedModule.id]: [...(prev[selectedModule.id] || []), data],
+      }));
+      setShowContentDialog(false);
+      setNewContent({ title: "", description: "", content_type: "video", content_text: "" });
+    } catch (err) {
+      console.error('Content creation exception:', err);
+      toast.error("Erro inesperado ao criar conteúdo");
     }
-
-    toast.success("Conteúdo adicionado!");
-    setContents(prev => ({
-      ...prev,
-      [selectedModule.id]: [...(prev[selectedModule.id] || []), data],
-    }));
-    setShowContentDialog(false);
-    setNewContent({ title: "", description: "", content_type: "video", content_text: "" });
   };
 
   const handleCompleteContent = async (contentId: string, trainingId: string) => {
