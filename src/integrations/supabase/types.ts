@@ -283,29 +283,131 @@ export type Database = {
         }
         Relationships: []
       }
+      training_contents: {
+        Row: {
+          content_text: string | null
+          content_type: string
+          content_url: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          module_id: string
+          order_index: number
+          title: string
+        }
+        Insert: {
+          content_text?: string | null
+          content_type: string
+          content_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          module_id: string
+          order_index?: number
+          title: string
+        }
+        Update: {
+          content_text?: string | null
+          content_type?: string
+          content_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          module_id?: string
+          order_index?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_contents_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "training_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_modules: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          order_index: number
+          title: string
+          training_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          title: string
+          training_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_index?: number
+          title?: string
+          training_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_modules_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_progress: {
         Row: {
           completed_at: string | null
+          content_id: string | null
           created_at: string
           id: string
+          module_id: string | null
           training_id: string
           user_id: string
         }
         Insert: {
           completed_at?: string | null
+          content_id?: string | null
           created_at?: string
           id?: string
+          module_id?: string | null
           training_id: string
           user_id: string
         }
         Update: {
           completed_at?: string | null
+          content_id?: string | null
           created_at?: string
           id?: string
+          module_id?: string | null
           training_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "training_progress_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "training_contents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "training_modules"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "training_progress_training_id_fkey"
             columns: ["training_id"]
@@ -317,30 +419,39 @@ export type Database = {
       }
       trainings: {
         Row: {
+          cover_image_url: string | null
           created_at: string
           created_by: string | null
           description: string | null
           duration_minutes: number | null
           id: string
           is_mandatory: boolean
+          points_reward: number | null
+          target_audience: string[] | null
           title: string
         }
         Insert: {
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           duration_minutes?: number | null
           id?: string
           is_mandatory?: boolean
+          points_reward?: number | null
+          target_audience?: string[] | null
           title: string
         }
         Update: {
+          cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           duration_minutes?: number | null
           id?: string
           is_mandatory?: boolean
+          points_reward?: number | null
+          target_audience?: string[] | null
           title?: string
         }
         Relationships: []
@@ -460,6 +571,7 @@ export type Database = {
         | "delay"
         | "critical_error"
         | "checklist_missing"
+        | "training_completed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -594,6 +706,7 @@ export const Constants = {
         "delay",
         "critical_error",
         "checklist_missing",
+        "training_completed",
       ],
     },
   },
