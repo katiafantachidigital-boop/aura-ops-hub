@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { GoalsRaceModule } from "@/components/modules/GoalsRaceModule";
 import RankingModule from "@/components/modules/RankingModule";
 import { CollaboratorProfile } from "@/components/modules/CollaboratorProfile";
+import { ProfileOnboarding } from "@/components/modules/ProfileOnboarding";
 
 const TrainingModule = () => (
   <div className="text-center py-12">
@@ -47,17 +48,17 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { user, loading, signOut, isProfileComplete } = useAuth();
   const [activeItem, setActiveItem] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const currentPage = pageTitles[activeItem] || pageTitles.dashboard;
 
-  // TEMPORARILY DISABLED: Redirect to auth if not logged in
-  // useEffect(() => {
-  //   if (!loading && !user) {
-  //     navigate("/auth");
-  //   }
-  // }, [user, loading, navigate]);
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
 
   const handleItemClick = async (id: string) => {
     if (id === "logout") {
@@ -95,19 +96,24 @@ const Index = () => {
     }
   };
 
-  // TEMPORARILY DISABLED: Loading state
-  // if (loading) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-background">
-  //       <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-  //     </div>
-  //   );
-  // }
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
 
-  // TEMPORARILY DISABLED: User check
-  // if (!user) {
-  //   return null;
-  // }
+  // Redirect to auth if not logged in
+  if (!user) {
+    return null;
+  }
+
+  // Show onboarding if profile is not complete
+  if (!isProfileComplete) {
+    return <ProfileOnboarding />;
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">

@@ -7,6 +7,10 @@ interface Profile {
   full_name: string | null;
   role: string | null;
   is_supervisor: boolean;
+  profile_completed: boolean;
+  birth_date: string | null;
+  shift: string | null;
+  custom_role: string | null;
 }
 
 interface AuthContextType {
@@ -18,6 +22,8 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   canSubmitChecklist: boolean;
+  isProfileComplete: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,7 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (!error && data) {
-      setProfile(data);
+      setProfile({
+        id: data.id,
+        full_name: data.full_name,
+        role: data.role,
+        is_supervisor: data.is_supervisor || false,
+        profile_completed: data.profile_completed || false,
+        birth_date: data.birth_date,
+        shift: data.shift,
+        custom_role: data.custom_role,
+      });
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchProfile(user.id);
     }
   };
 
@@ -111,6 +132,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile?.role === "gestora" || profile?.is_supervisor === true
   );
 
+  // Check if profile is complete
+  const isProfileComplete = Boolean(profile?.profile_completed);
+
   return (
     <AuthContext.Provider
       value={{
@@ -122,6 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signOut,
         canSubmitChecklist,
+        isProfileComplete,
+        refreshProfile,
       }}
     >
       {children}

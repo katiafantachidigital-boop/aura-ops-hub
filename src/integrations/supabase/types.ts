@@ -246,27 +246,39 @@ export type Database = {
       }
       profiles: {
         Row: {
+          birth_date: string | null
           created_at: string
+          custom_role: string | null
           full_name: string | null
           id: string
           is_supervisor: boolean | null
+          profile_completed: boolean
           role: string | null
+          shift: string | null
           updated_at: string
         }
         Insert: {
+          birth_date?: string | null
           created_at?: string
+          custom_role?: string | null
           full_name?: string | null
           id: string
           is_supervisor?: boolean | null
+          profile_completed?: boolean
           role?: string | null
+          shift?: string | null
           updated_at?: string
         }
         Update: {
+          birth_date?: string | null
           created_at?: string
+          custom_role?: string | null
           full_name?: string | null
           id?: string
           is_supervisor?: boolean | null
+          profile_completed?: boolean
           role?: string | null
+          shift?: string | null
           updated_at?: string
         }
         Relationships: []
