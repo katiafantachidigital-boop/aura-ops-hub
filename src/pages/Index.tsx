@@ -11,13 +11,7 @@ import { GoalsRaceModule } from "@/components/modules/GoalsRaceModule";
 import RankingModule from "@/components/modules/RankingModule";
 import { CollaboratorProfile } from "@/components/modules/CollaboratorProfile";
 import { ProfileOnboarding } from "@/components/modules/ProfileOnboarding";
-
-const TrainingModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Treinamentos</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
+import { TrainingModule } from "@/components/modules/TrainingModule";
 
 const SupervisorModule = () => (
   <div className="text-center py-12">
@@ -69,12 +63,16 @@ const Index = () => {
     setActiveItem(id);
   };
 
+  // Check if user is manager (by email)
+  const isManager = user?.email === "importacaofilms@gmail.com";
+
   const renderContent = () => {
     switch (activeItem) {
       case "dashboard":
-        return <Dashboard />;
+        // Non-managers only see ranking, goals-race and training
+        return isManager ? <Dashboard /> : <RankingModule />;
       case "checklist":
-        return <RoutineManagement />;
+        return isManager ? <RoutineManagement /> : <RankingModule />;
       case "goals-race":
         return <GoalsRaceModule />;
       case "ranking":
@@ -82,17 +80,17 @@ const Index = () => {
       case "training":
         return <TrainingModule />;
       case "team":
-        return <TeamModule />;
+        return isManager ? <TeamModule /> : <RankingModule />;
       case "supervisor":
-        return <SupervisorModule />;
+        return isManager ? <SupervisorModule /> : <RankingModule />;
       case "checklist-history":
-        return <ChecklistHistoryModule />;
+        return isManager ? <ChecklistHistoryModule /> : <RankingModule />;
       case "settings":
-        return <SettingsModule />;
+        return isManager ? <SettingsModule /> : <RankingModule />;
       case "profile":
         return <CollaboratorProfile />;
       default:
-        return <Dashboard />;
+        return isManager ? <Dashboard /> : <RankingModule />;
     }
   };
 
