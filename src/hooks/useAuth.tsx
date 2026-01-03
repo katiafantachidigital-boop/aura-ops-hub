@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Check if user is manager (by email)
-  const isManager = user?.email === "importacaofilms@gmail.com";
+  const isManager = user?.email === "gerenteipfp@gmail.com";
 
   // Check if user can submit checklist: gestora role OR is_supervisor = true
   const canSubmitChecklist = Boolean(
@@ -141,8 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Calculate when checklist will be available again (7 AM next day)
   const checklistDisabledUntil: Date | null = null; // Will be calculated in components when needed
 
-  // Check if profile is complete
-  const isProfileComplete = Boolean(profile?.profile_completed);
+  // Check if profile is complete - manager always has complete profile
+  const isProfileComplete = isManager || Boolean(profile?.profile_completed);
 
   return (
     <AuthContext.Provider
