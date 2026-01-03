@@ -4,56 +4,25 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { RoutineManagement } from "@/components/modules/RoutineManagement";
+import { GoalsRaceModule } from "@/components/modules/GoalsRaceModule";
+import { RankingModule } from "@/components/modules/RankingModule";
+import { TrainingModule } from "@/components/modules/TrainingModule";
 import { TeamModule } from "@/components/modules/TeamModule";
+import { SupervisorModule } from "@/components/modules/SupervisorModule";
+import { ChecklistHistoryModule } from "@/components/modules/ChecklistHistoryModule";
 import { SettingsModule } from "@/components/modules/SettingsModule";
 import { useAuth } from "@/hooks/useAuth";
 
-// Placeholder components for new modules
-const GoalsRaceModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Corrida das Metas</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
-
-const RankingModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Ranking</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
-
-const TrainingModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Treinamentos</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
-
-const SupervisorModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Supervisora da Semana</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
-
-const ChecklistHistoryModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Histórico de Checklists</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
-
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
-  dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
-  checklist: { title: "Checklist Diário", subtitle: "Avaliação diária da equipe" },
-  "goals-race": { title: "Corrida das Metas", subtitle: "Acompanhe o progresso das metas" },
-  ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
-  training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
-  team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
-  supervisor: { title: "Supervisora da Semana", subtitle: "Gestão da supervisão semanal" },
-  "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
-  settings: { title: "Configurações", subtitle: "Configurações do sistema" },
+  dashboard: { title: "Dashboard", subtitle: "Visão geral do dia" },
+  checklist: { title: "Checklist Diário", subtitle: "Formulário de execução diária" },
+  "goals-race": { title: "Corrida das Metas", subtitle: "Gamificação e progresso da equipe" },
+  ranking: { title: "Ranking", subtitle: "Performance semanal e mensal" },
+  training: { title: "Treinamentos", subtitle: "Conteúdos e capacitação" },
+  team: { title: "Equipe", subtitle: "Gestão de colaboradoras" },
+  supervisor: { title: "Supervisora da Semana", subtitle: "Controle de autoridade temporária" },
+  "checklist-history": { title: "Histórico de Checklists", subtitle: "Registro de checklists enviados" },
+  settings: { title: "Configurações", subtitle: "Preferências do sistema" },
 };
 
 const Index = () => {
