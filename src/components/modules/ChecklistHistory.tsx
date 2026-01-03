@@ -2,31 +2,26 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { 
   ArrowLeft, Calendar, User, CheckCircle2, XCircle, Clock, 
   Sparkles, Smile, ClipboardList, Users, AlertTriangle, Eye,
-  Star, Filter, ShieldCheck
+  Star, Filter
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
 
 interface ChecklistRecord {
   id: string;
   checklist_date: string;
   submitted_by_name: string;
-  submitted_by: string;
   created_at: string;
   is_perfect: boolean | null;
-  confirmed_at: string | null;
-  confirmed_by: string | null;
   punctuality_on_time: boolean | null;
   punctuality_uniforms: boolean | null;
   punctuality_hair: boolean | null;
@@ -134,10 +129,8 @@ const sections = [
 ];
 
 export function ChecklistHistory({ onBack }: ChecklistHistoryProps) {
-  const { isManager, user } = useAuth();
   const [checklists, setChecklists] = useState<ChecklistRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [confirming, setConfirming] = useState(false);
   const [selectedChecklist, setSelectedChecklist] = useState<ChecklistRecord | null>(null);
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
   const [filterMonth, setFilterMonth] = useState("current");
@@ -207,72 +200,6 @@ export function ChecklistHistory({ onBack }: ChecklistHistoryProps) {
   const openChecklistDetail = async (checklist: ChecklistRecord) => {
     setSelectedChecklist(checklist);
     await loadOccurrences(checklist.id);
-  };
-
-  const confirmChecklist = async () => {
-    if (!selectedChecklist || !user) return;
-    
-    setConfirming(true);
-    try {
-      // Calcular pontos: 1 por envio + 2 extra se perfeito = 3 total para perfeito
-      const points = selectedChecklist.is_perfect ? 3 : 1;
-      
-      // Marcar checklist como confirmado
-      const { error: updateError } = await supabase
-        .from("daily_checklists")
-        .update({ 
-          confirmed_at: new Date().toISOString(),
-          confirmed_by: user.id 
-        })
-        .eq("id", selectedChecklist.id);
-
-      if (updateError) throw updateError;
-
-      // Atualizar posição na corrida da meta
-      const { error: raceError } = await supabase
-        .from("goals_race_config")
-        .update({ 
-          current_position: supabase.rpc ? undefined : undefined // Will use raw SQL
-        })
-        .eq("is_active", true);
-
-      // Usar RPC para incrementar a posição
-      const { data: raceData } = await supabase
-        .from("goals_race_config")
-        .select("id, current_position")
-        .eq("is_active", true)
-        .single();
-
-      if (raceData) {
-        await supabase
-          .from("goals_race_config")
-          .update({ current_position: raceData.current_position + points })
-          .eq("id", raceData.id);
-
-        // Registrar evento na corrida
-        await supabase
-          .from("goals_race_events")
-          .insert({
-            race_id: raceData.id,
-            event_type: selectedChecklist.is_perfect ? "checklist_perfect" : "checklist_sent",
-            points: points,
-            description: `Checklist confirmado pela gestora (+${points} ${points === 1 ? 'casa' : 'casas'})`,
-            related_user_id: selectedChecklist.submitted_by,
-            related_checklist_id: selectedChecklist.id
-          });
-      }
-
-      toast.success(`Checklist confirmado! +${points} ${points === 1 ? 'casa' : 'casas'} na Corrida da Meta`);
-      
-      // Atualizar lista
-      setSelectedChecklist({ ...selectedChecklist, confirmed_at: new Date().toISOString(), confirmed_by: user.id });
-      loadChecklists();
-    } catch (error) {
-      console.error("Error confirming checklist:", error);
-      toast.error("Erro ao confirmar checklist");
-    } finally {
-      setConfirming(false);
-    }
   };
 
   const getChecklistStats = (checklist: ChecklistRecord) => {
@@ -453,20 +380,13 @@ export function ChecklistHistory({ onBack }: ChecklistHistoryProps) {
                         <p className="text-sm font-medium text-foreground">{stats.percentage}%</p>
                         <p className="text-xs text-muted-foreground">{stats.yesCount}/{stats.total}</p>
                       </div>
-                      {checklist.confirmed_at ? (
-                        <Badge className="gap-1.5 bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400">
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          Confirmado
-                        </Badge>
-                      ) : (
-                        <Badge className={cn("gap-1.5", checklist.is_perfect 
-                          ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400"
-                          : "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
-                        )}>
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          {checklist.is_perfect ? "Perfeito" : "Concluído"}
-                        </Badge>
-                      )}
+                      <Badge className={cn("gap-1.5", checklist.is_perfect 
+                        ? "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        : "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400"
+                      )}>
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {checklist.is_perfect ? "Perfeito" : "Concluído"}
+                      </Badge>
                       <Button variant="ghost" size="icon" className="shrink-0">
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -503,21 +423,13 @@ export function ChecklistHistory({ onBack }: ChecklistHistoryProps) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={cn(
-                      selectedChecklist.is_perfect 
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-blue-100 text-blue-700"
-                    )}>
-                      {selectedChecklist.is_perfect ? "Checklist Perfeito ⭐" : "Concluído"}
-                    </Badge>
-                    {selectedChecklist.confirmed_at && (
-                      <Badge className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 gap-1">
-                        <ShieldCheck className="h-3 w-3" />
-                        Confirmado
-                      </Badge>
-                    )}
-                  </div>
+                  <Badge className={cn(
+                    selectedChecklist.is_perfect 
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-blue-100 text-blue-700"
+                  )}>
+                    {selectedChecklist.is_perfect ? "Checklist Perfeito ⭐" : "Concluído"}
+                  </Badge>
                 </div>
 
                 {/* Sections */}
@@ -598,40 +510,6 @@ export function ChecklistHistory({ onBack }: ChecklistHistoryProps) {
               </div>
             )}
           </ScrollArea>
-
-          {/* Footer com botão de confirmar - apenas para gestoras */}
-          {isManager && selectedChecklist && !selectedChecklist.confirmed_at && (
-            <DialogFooter className="border-t pt-4">
-              <div className="flex items-center justify-between w-full">
-                <div className="text-sm text-muted-foreground">
-                  <p>Ao confirmar, será adicionado à Corrida da Meta:</p>
-                  <p className="font-medium text-foreground">
-                    +{selectedChecklist.is_perfect ? "3 casas" : "1 casa"} 
-                    {selectedChecklist.is_perfect && " (perfeito)"}
-                  </p>
-                </div>
-                <Button 
-                  onClick={confirmChecklist} 
-                  disabled={confirming}
-                  className="gap-2"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                  {confirming ? "Confirmando..." : "Confirmar Checklist"}
-                </Button>
-              </div>
-            </DialogFooter>
-          )}
-
-          {selectedChecklist?.confirmed_at && (
-            <div className="border-t pt-4">
-              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                <ShieldCheck className="h-4 w-4" />
-                <span>
-                  Confirmado em {format(new Date(selectedChecklist.confirmed_at), "dd/MM/yyyy 'às' HH:mm")}
-                </span>
-              </div>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </div>

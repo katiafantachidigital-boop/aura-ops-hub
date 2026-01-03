@@ -61,8 +61,6 @@ export type Database = {
           cleaning_rooms: boolean | null
           cleaning_towels: boolean | null
           cleaning_trash: boolean | null
-          confirmed_at: string | null
-          confirmed_by: string | null
           created_at: string
           id: string
           is_perfect: boolean | null
@@ -100,8 +98,6 @@ export type Database = {
           cleaning_rooms?: boolean | null
           cleaning_towels?: boolean | null
           cleaning_trash?: boolean | null
-          confirmed_at?: string | null
-          confirmed_by?: string | null
           created_at?: string
           id?: string
           is_perfect?: boolean | null
@@ -139,8 +135,6 @@ export type Database = {
           cleaning_rooms?: boolean | null
           cleaning_towels?: boolean | null
           cleaning_trash?: boolean | null
-          confirmed_at?: string | null
-          confirmed_by?: string | null
           created_at?: string
           id?: string
           is_perfect?: boolean | null
