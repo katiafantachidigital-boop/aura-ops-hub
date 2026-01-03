@@ -1,183 +1,143 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { 
-  Plus, 
-  Mail, 
-  Phone, 
+  Users,
   Star,
-  MoreVertical
+  Loader2,
+  Crown
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-interface TeamMember {
+interface Profile {
   id: string;
-  name: string;
-  role: string;
-  email: string;
-  phone: string;
-  avatar: string;
-  status: "active" | "vacation" | "away";
-  performance: number;
-  specialties: string[];
-  appointments: number;
+  full_name: string | null;
+  role: string | null;
+  custom_role: string | null;
+  shift: string | null;
+  is_supervisor: boolean | null;
+  profile_completed: boolean;
 }
 
-const teamMembers: TeamMember[] = [
-  {
-    id: "1",
-    name: "Carla Mendes",
-    role: "Esteticista Sênior",
-    email: "carla@esteticapro.com",
-    phone: "(11) 99999-1111",
-    avatar: "CM",
-    status: "active",
-    performance: 94,
-    specialties: ["Limpeza de Pele", "Harmonização Facial", "Microagulhamento"],
-    appointments: 48,
-  },
-  {
-    id: "2",
-    name: "Juliana Santos",
-    role: "Esteticista",
-    email: "juliana@esteticapro.com",
-    phone: "(11) 99999-2222",
-    avatar: "JS",
-    status: "active",
-    performance: 87,
-    specialties: ["Drenagem Linfática", "Massagem Modeladora"],
-    appointments: 42,
-  },
-  {
-    id: "3",
-    name: "Patricia Lima",
-    role: "Esteticista",
-    email: "patricia@esteticapro.com",
-    phone: "(11) 99999-3333",
-    avatar: "PL",
-    status: "vacation",
-    performance: 78,
-    specialties: ["Peeling Químico", "Tratamentos Corporais"],
-    appointments: 35,
-  },
-  {
-    id: "4",
-    name: "Fernanda Costa",
-    role: "Esteticista Jr.",
-    email: "fernanda@esteticapro.com",
-    phone: "(11) 99999-4444",
-    avatar: "FC",
-    status: "active",
-    performance: 72,
-    specialties: ["Limpeza de Pele", "Hidratação Facial"],
-    appointments: 28,
-  },
-  {
-    id: "5",
-    name: "Roberto Alves",
-    role: "Recepcionista",
-    email: "roberto@esteticapro.com",
-    phone: "(11) 99999-5555",
-    avatar: "RA",
-    status: "active",
-    performance: 91,
-    specialties: ["Atendimento", "Agendamentos"],
-    appointments: 0,
-  },
-];
-
-const statusConfig = {
-  active: { label: "Ativo", className: "bg-emerald-light text-emerald" },
-  vacation: { label: "Férias", className: "bg-gold-light text-gold" },
-  away: { label: "Ausente", className: "bg-destructive/10 text-destructive" },
-};
-
 export function TeamModule() {
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProfiles();
+  }, []);
+
+  const loadProfiles = async () => {
+    setLoading(true);
+    
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('profile_completed', true)
+      .order('full_name');
+
+    setProfiles(data || []);
+    setLoading(false);
+  };
+
+  const getInitials = (name: string | null) => {
+    if (!name) return "??";
+    const parts = name.split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const getShiftLabel = (shift: string | null) => {
+    const shifts: Record<string, string> = {
+      morning: "Manhã",
+      afternoon: "Tarde",
+      full: "Integral"
+    };
+    return shift ? shifts[shift] || shift : "Não definido";
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <h1 className="text-2xl font-bold text-foreground">Equipe</h1>
           <p className="text-muted-foreground">
-            {teamMembers.length} profissionais cadastrados
+            {profiles.length === 0 
+              ? "Nenhum profissional cadastrado ainda" 
+              : `${profiles.length} ${profiles.length === 1 ? 'profissional cadastrado' : 'profissionais cadastrados'}`
+            }
           </p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Adicionar Profissional
-        </Button>
       </div>
 
-      {/* Team Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {teamMembers.map((member) => (
-          <Card key={member.id} variant="interactive" className="overflow-hidden">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
-                    {member.avatar}
+      {/* Empty State */}
+      {profiles.length === 0 ? (
+        <Card variant="glass">
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium mb-1">Nenhuma colaboradora cadastrada</p>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Quando as colaboradoras criarem suas contas e completarem o perfil, 
+                elas aparecerão aqui automaticamente
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        /* Team Grid */
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {profiles.map((member) => (
+            <Card key={member.id} variant="interactive" className="overflow-hidden">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center text-primary-foreground font-semibold">
+                      {getInitials(member.full_name)}
+                    </div>
+                    <div>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        {member.full_name || "Sem nome"}
+                        {member.is_supervisor && (
+                          <Crown className="h-4 w-4 text-amber-500" />
+                        )}
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {member.custom_role || member.role || "Colaborador"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-base">{member.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground">{member.role}</p>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Status */}
+                <div className="flex items-center justify-between">
+                  <Badge className={member.is_supervisor ? "bg-amber-100 text-amber-700" : "bg-emerald-light text-emerald"}>
+                    {member.is_supervisor ? "Supervisora" : "Ativa"}
+                  </Badge>
+                  <div className="flex items-center gap-1">
+                    <Star className="h-4 w-4 text-gold fill-gold" />
+                    <span className="text-sm text-muted-foreground">{getShiftLabel(member.shift)}</span>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Status & Performance */}
-              <div className="flex items-center justify-between">
-                <Badge className={statusConfig[member.status].className}>
-                  {statusConfig[member.status].label}
-                </Badge>
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 text-gold fill-gold" />
-                  <span className="text-sm font-medium">{member.performance}%</span>
-                </div>
-              </div>
-
-              {/* Contact Info */}
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="h-4 w-4" />
-                  <span className="truncate">{member.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Phone className="h-4 w-4" />
-                  <span>{member.phone}</span>
-                </div>
-              </div>
-
-              {/* Specialties */}
-              <div className="flex flex-wrap gap-1">
-                {member.specialties.slice(0, 2).map((specialty) => (
-                  <Badge key={specialty} variant="secondary" className="text-xs">
-                    {specialty}
-                  </Badge>
-                ))}
-                {member.specialties.length > 2 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{member.specialties.length - 2}
-                  </Badge>
-                )}
-              </div>
-
-              {/* Performance Bar */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Performance</span>
-                  <span>{member.appointments} atendimentos</span>
-                </div>
-                <Progress value={member.performance} className="h-1.5" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

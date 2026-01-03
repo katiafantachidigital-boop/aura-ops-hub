@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -8,7 +8,6 @@ import {
   Award,
   TrendingUp, 
   TrendingDown,
-  Minus,
   CheckCircle2,
   Star,
   Clock,
@@ -16,87 +15,114 @@ import {
   BookOpen,
   Info,
   Users,
-  Target
+  Target,
+  Loader2
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-// Mock data - será substituído por dados reais do banco
-const mockCollaborators = [
-  { 
-    id: 1, 
-    name: 'Maria Silva', 
-    role: 'Esteticista', 
-    points: 156,
-    checklistsSent: 20,
-    perfectChecklists: 15,
-    delays: 1,
-    criticalErrors: 0,
-    trainingsCompleted: 5
-  },
-  { 
-    id: 2, 
-    name: 'Ana Costa', 
-    role: 'Recepcionista', 
-    points: 142,
-    checklistsSent: 18,
-    perfectChecklists: 12,
-    delays: 2,
-    criticalErrors: 0,
-    trainingsCompleted: 4
-  },
-  { 
-    id: 3, 
-    name: 'Juliana Santos', 
-    role: 'Esteticista', 
-    points: 128,
-    checklistsSent: 17,
-    perfectChecklists: 10,
-    delays: 3,
-    criticalErrors: 1,
-    trainingsCompleted: 3
-  },
-  { 
-    id: 4, 
-    name: 'Carla Oliveira', 
-    role: 'Supervisora', 
-    points: 115,
-    checklistsSent: 15,
-    perfectChecklists: 8,
-    delays: 2,
-    criticalErrors: 0,
-    trainingsCompleted: 4
-  },
-  { 
-    id: 5, 
-    name: 'Fernanda Lima', 
-    role: 'Esteticista', 
-    points: 98,
-    checklistsSent: 14,
-    perfectChecklists: 6,
-    delays: 4,
-    criticalErrors: 1,
-    trainingsCompleted: 2
-  },
-];
+interface UserScore {
+  user_id: string;
+  checklists_sent: number;
+  perfect_checklists: number;
+  delays: number;
+  critical_errors: number;
+  trainings_completed: number;
+  total_points: number | null;
+}
 
-const teamStats = {
-  currentScore: 639,
-  previousScore: 580,
-  goalPosition: 12,
-  totalGoal: 20,
-};
+interface Profile {
+  id: string;
+  full_name: string | null;
+  custom_role: string | null;
+  role: string | null;
+}
+
+interface CollaboratorRanking {
+  id: string;
+  name: string;
+  role: string;
+  points: number;
+  checklistsSent: number;
+  perfectChecklists: number;
+  delays: number;
+  criticalErrors: number;
+  trainingsCompleted: number;
+}
+
+interface GoalsRaceConfig {
+  current_position: number;
+  goal_target: number;
+}
 
 const RankingModule: React.FC = () => {
-  const sortedCollaborators = [...mockCollaborators].sort((a, b) => b.points - a.points);
-  const maxPoints = sortedCollaborators[0]?.points || 100;
-  
-  const scoreDifference = teamStats.currentScore - teamStats.previousScore;
-  const scorePercentChange = ((scoreDifference / teamStats.previousScore) * 100).toFixed(1);
+  const [collaborators, setCollaborators] = useState<CollaboratorRanking[]>([]);
+  const [raceConfig, setRaceConfig] = useState<GoalsRaceConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+
+    // Carregar configuração da corrida
+    const { data: raceData } = await supabase
+      .from('goals_race_config')
+      .select('current_position, goal_target')
+      .eq('is_active', true)
+      .maybeSingle();
+
+    setRaceConfig(raceData);
+
+    // Carregar perfis
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, full_name, custom_role, role')
+      .eq('profile_completed', true);
+
+    // Carregar pontuações
+    const { data: scores } = await supabase
+      .from('user_scores')
+      .select('*');
+
+    // Combinar dados
+    const combined: CollaboratorRanking[] = (profiles || []).map((profile: Profile) => {
+      const score = scores?.find((s: UserScore) => s.user_id === profile.id);
+      const points = score ? (
+        (score.checklists_sent * 5) +
+        (score.perfect_checklists * 10) +
+        (score.trainings_completed * 3) -
+        (score.delays * 3) -
+        (score.critical_errors * 5)
+      ) : 0;
+
+      return {
+        id: profile.id,
+        name: profile.full_name || 'Sem nome',
+        role: profile.custom_role || profile.role || 'Colaborador',
+        points,
+        checklistsSent: score?.checklists_sent || 0,
+        perfectChecklists: score?.perfect_checklists || 0,
+        delays: score?.delays || 0,
+        criticalErrors: score?.critical_errors || 0,
+        trainingsCompleted: score?.trainings_completed || 0,
+      };
+    });
+
+    setCollaborators(combined.sort((a, b) => b.points - a.points));
+    setLoading(false);
+  };
+
+  const maxPoints = collaborators[0]?.points || 100;
+  const totalScore = collaborators.reduce((acc, c) => acc + c.points, 0);
   
   const getTeamStatus = () => {
-    const progressPercent = (teamStats.goalPosition / teamStats.totalGoal) * 100;
+    if (!raceConfig) return { status: 'Aguardando', color: 'bg-muted', textColor: 'text-muted-foreground' };
+    const progressPercent = (raceConfig.current_position / raceConfig.goal_target) * 100;
     if (progressPercent >= 70) return { status: 'Bom', color: 'bg-green-500', textColor: 'text-green-700' };
     if (progressPercent >= 40) return { status: 'Atenção', color: 'bg-yellow-500', textColor: 'text-yellow-700' };
-    return { status: 'Crítico', color: 'bg-red-500', textColor: 'text-red-700' };
+    return { status: 'Início', color: 'bg-blue-500', textColor: 'text-blue-700' };
   };
   
   const teamStatus = getTeamStatus();
@@ -127,6 +153,14 @@ const RankingModule: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -149,34 +183,18 @@ const RankingModule: React.FC = () => {
             <div className="p-4 rounded-lg bg-muted/50">
               <p className="text-sm text-muted-foreground mb-1">Pontuação Total</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-bold text-foreground">{teamStats.currentScore}</span>
+                <span className="text-3xl font-bold text-foreground">{totalScore}</span>
                 <span className="text-sm text-muted-foreground">pontos</span>
               </div>
             </div>
 
-            {/* Comparação com Período Anterior */}
+            {/* Colaboradores */}
             <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-sm text-muted-foreground mb-1">vs. Período Anterior</p>
+              <p className="text-sm text-muted-foreground mb-1">Colaboradores</p>
               <div className="flex items-center gap-2">
-                {scoreDifference > 0 ? (
-                  <>
-                    <TrendingUp className="h-5 w-5 text-green-500" />
-                    <span className="text-xl font-bold text-green-600">+{scoreDifference}</span>
-                    <span className="text-sm text-green-600">(+{scorePercentChange}%)</span>
-                  </>
-                ) : scoreDifference < 0 ? (
-                  <>
-                    <TrendingDown className="h-5 w-5 text-red-500" />
-                    <span className="text-xl font-bold text-red-600">{scoreDifference}</span>
-                    <span className="text-sm text-red-600">({scorePercentChange}%)</span>
-                  </>
-                ) : (
-                  <>
-                    <Minus className="h-5 w-5 text-gray-500" />
-                    <span className="text-xl font-bold text-gray-600">0</span>
-                    <span className="text-sm text-gray-600">(0%)</span>
-                  </>
-                )}
+                <Users className="h-5 w-5 text-primary" />
+                <span className="text-xl font-bold text-foreground">{collaborators.length}</span>
+                <span className="text-sm text-muted-foreground">ativos</span>
               </div>
             </div>
 
@@ -187,10 +205,12 @@ const RankingModule: React.FC = () => {
                 <div className={`w-4 h-4 rounded-full ${teamStatus.color}`} />
                 <span className={`text-xl font-bold ${teamStatus.textColor}`}>{teamStatus.status}</span>
               </div>
-              <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                <Target className="h-4 w-4" />
-                <span>Corrida: Casa {teamStats.goalPosition}/{teamStats.totalGoal}</span>
-              </div>
+              {raceConfig && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Target className="h-4 w-4" />
+                  <span>Corrida: Casa {raceConfig.current_position}/{raceConfig.goal_target}</span>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -205,73 +225,85 @@ const RankingModule: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {sortedCollaborators.map((collaborator, index) => {
-              const position = index + 1;
-              const progressPercent = (collaborator.points / maxPoints) * 100;
-              
-              return (
-                <div
-                  key={collaborator.id}
-                  className={`p-4 rounded-lg border-2 transition-all ${getPositionStyle(position)}`}
-                >
-                  <div className="flex items-center gap-4">
-                    {/* Posição */}
-                    <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
-                      {getRankIcon(position)}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-grow min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-foreground">{collaborator.name}</h3>
-                        <Badge variant="secondary" className="text-xs">
-                          {collaborator.role}
-                        </Badge>
+          {collaborators.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+                <Trophy className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium mb-1">Nenhum colaborador no ranking</p>
+              <p className="text-sm text-muted-foreground">
+                O ranking será preenchido quando colaboradoras completarem o perfil
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {collaborators.map((collaborator, index) => {
+                const position = index + 1;
+                const progressPercent = maxPoints > 0 ? (collaborator.points / maxPoints) * 100 : 0;
+                
+                return (
+                  <div
+                    key={collaborator.id}
+                    className={`p-4 rounded-lg border-2 transition-all ${getPositionStyle(position)}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Posição */}
+                      <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center">
+                        {getRankIcon(position)}
                       </div>
-                      
-                      {/* Indicadores de Comportamento */}
-                      <div className="flex items-center gap-3 mt-2 flex-wrap">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <CheckCircle2 className="h-3 w-3 text-green-500" />
-                          <span>{collaborator.checklistsSent} enviados</span>
+
+                      {/* Info */}
+                      <div className="flex-grow min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-foreground">{collaborator.name}</h3>
+                          <Badge variant="secondary" className="text-xs">
+                            {collaborator.role}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Star className="h-3 w-3 text-yellow-500" />
-                          <span>{collaborator.perfectChecklists} perfeitos</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3 text-orange-500" />
-                          <span>{collaborator.delays} atrasos</span>
-                        </div>
-                        {collaborator.criticalErrors > 0 && (
-                          <div className="flex items-center gap-1 text-xs text-red-500">
-                            <AlertTriangle className="h-3 w-3" />
-                            <span>{collaborator.criticalErrors} erros</span>
+                        
+                        {/* Indicadores de Comportamento */}
+                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <CheckCircle2 className="h-3 w-3 text-green-500" />
+                            <span>{collaborator.checklistsSent} enviados</span>
                           </div>
-                        )}
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <BookOpen className="h-3 w-3 text-blue-500" />
-                          <span>{collaborator.trainingsCompleted} treinamentos</span>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Star className="h-3 w-3 text-yellow-500" />
+                            <span>{collaborator.perfectChecklists} perfeitos</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3 text-orange-500" />
+                            <span>{collaborator.delays} atrasos</span>
+                          </div>
+                          {collaborator.criticalErrors > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-red-500">
+                              <AlertTriangle className="h-3 w-3" />
+                              <span>{collaborator.criticalErrors} erros</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <BookOpen className="h-3 w-3 text-blue-500" />
+                            <span>{collaborator.trainingsCompleted} treinamentos</span>
+                          </div>
+                        </div>
+
+                        {/* Barra de Progresso */}
+                        <div className="mt-2">
+                          <Progress value={progressPercent} className="h-2" />
                         </div>
                       </div>
 
-                      {/* Barra de Progresso */}
-                      <div className="mt-2">
-                        <Progress value={progressPercent} className="h-2" />
+                      {/* Pontos */}
+                      <div className="flex-shrink-0 text-right">
+                        <span className="text-2xl font-bold text-primary">{collaborator.points}</span>
+                        <p className="text-xs text-muted-foreground">pontos</p>
                       </div>
-                    </div>
-
-                    {/* Pontos */}
-                    <div className="flex-shrink-0 text-right">
-                      <span className="text-2xl font-bold text-primary">{collaborator.points}</span>
-                      <p className="text-xs text-muted-foreground">pontos</p>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -330,10 +362,6 @@ const RankingModule: React.FC = () => {
                   <span className="w-8 h-6 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-bold flex items-center justify-center">-8</span>
                   <span className="text-foreground">Checklist não enviado</span>
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-8 h-6 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-bold flex items-center justify-center">-2</span>
-                  <span className="text-foreground">Item do checklist incompleto</span>
-                </li>
               </ul>
             </div>
 
@@ -351,10 +379,6 @@ const RankingModule: React.FC = () => {
                 <p>
                   Ele promove uma competição <strong>saudável</strong> e <strong>transparente</strong>, 
                   onde todos sabem como melhorar.
-                </p>
-                <p>
-                  O objetivo é criar uma cultura de <strong>excelência</strong> e 
-                  <strong> melhoria contínua</strong>.
                 </p>
               </div>
             </div>

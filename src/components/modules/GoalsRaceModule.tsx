@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,41 +17,75 @@ import {
   XCircle,
   Clock,
   AlertTriangle,
-  Sparkles
+  Sparkles,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RaceEvent {
   id: string;
-  type: "advance" | "retreat";
-  reason: string;
-  houses: number;
-  date: string;
-  description: string;
+  event_type: string;
+  points: number;
+  description: string | null;
+  created_at: string;
+}
+
+interface GoalsRaceConfig {
+  id: string;
+  current_position: number;
+  goal_target: number;
 }
 
 export function GoalsRaceModule() {
   const { toast } = useToast();
   const { isManager } = useAuth();
-  const [currentPosition, setCurrentPosition] = useState(7);
-  const [goalTarget, setGoalTarget] = useState(20);
+  const [config, setConfig] = useState<GoalsRaceConfig | null>(null);
+  const [events, setEvents] = useState<RaceEvent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isConfiguring, setIsConfiguring] = useState(false);
-  const [newGoalTarget, setNewGoalTarget] = useState(goalTarget.toString());
+  const [newGoalTarget, setNewGoalTarget] = useState("");
 
-  const [events] = useState<RaceEvent[]>([
-    { id: "1", type: "advance", reason: "Checklist enviado", houses: 1, date: "02/01/2026", description: "Checklist do dia enviado por Maria" },
-    { id: "2", type: "advance", reason: "Checklist perfeito", houses: 2, date: "01/01/2026", description: "100% de conformidade - Ana" },
-    { id: "3", type: "retreat", reason: "Atraso", houses: 1, date: "31/12/2025", description: "Colaboradora chegou atrasada" },
-    { id: "4", type: "advance", reason: "Checklist enviado", houses: 1, date: "30/12/2025", description: "Checklist do dia enviado por Carla" },
-    { id: "5", type: "retreat", reason: "Checklist não enviado", houses: 2, date: "29/12/2025", description: "Dia sem checklist registrado" },
-  ]);
+  useEffect(() => {
+    loadData();
+  }, []);
 
+  const loadData = async () => {
+    setLoading(true);
+    
+    // Carregar configuração ativa
+    const { data: configData } = await supabase
+      .from('goals_race_config')
+      .select('*')
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (configData) {
+      setConfig(configData);
+      setNewGoalTarget(configData.goal_target.toString());
+
+      // Carregar eventos
+      const { data: eventsData } = await supabase
+        .from('goals_race_events')
+        .select('*')
+        .eq('race_id', configData.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      setEvents(eventsData || []);
+    }
+    
+    setLoading(false);
+  };
+
+  const currentPosition = config?.current_position || 0;
+  const goalTarget = config?.goal_target || 20;
   const progressPercentage = Math.min((currentPosition / goalTarget) * 100, 100);
   const housesRemaining = goalTarget - currentPosition;
 
-  const handleSaveGoal = () => {
+  const handleSaveGoal = async () => {
     const newTarget = parseInt(newGoalTarget);
     if (isNaN(newTarget) || newTarget < 1) {
       toast({
@@ -61,7 +95,25 @@ export function GoalsRaceModule() {
       });
       return;
     }
-    setGoalTarget(newTarget);
+
+    if (config) {
+      const { error } = await supabase
+        .from('goals_race_config')
+        .update({ goal_target: newTarget })
+        .eq('id', config.id);
+
+      if (error) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível atualizar a meta.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setConfig({ ...config, goal_target: newTarget });
+    }
+    
     setIsConfiguring(false);
     toast({
       title: "Meta atualizada!",
@@ -135,28 +187,56 @@ export function GoalsRaceModule() {
   };
 
   const getEventIcon = (event: RaceEvent) => {
-    if (event.type === "advance") {
-      switch (event.reason) {
-        case "Checklist perfeito":
+    const isAdvance = event.points > 0;
+    if (isAdvance) {
+      switch (event.event_type) {
+        case "checklist_perfect":
           return <Sparkles className="h-4 w-4 text-emerald" />;
-        case "Checklist enviado":
+        case "checklist_sent":
           return <CheckCircle2 className="h-4 w-4 text-emerald" />;
+        case "training_completed":
+          return <TrendingUp className="h-4 w-4 text-emerald" />;
         default:
           return <TrendingUp className="h-4 w-4 text-emerald" />;
       }
     } else {
-      switch (event.reason) {
-        case "Atraso":
+      switch (event.event_type) {
+        case "delay":
           return <Clock className="h-4 w-4 text-amber-500" />;
-        case "Erro crítico":
+        case "critical_error":
           return <AlertTriangle className="h-4 w-4 text-destructive" />;
-        case "Checklist não enviado":
+        case "checklist_missing":
           return <XCircle className="h-4 w-4 text-destructive" />;
         default:
           return <TrendingDown className="h-4 w-4 text-destructive" />;
       }
     }
   };
+
+  const getEventLabel = (type: string) => {
+    const labels: Record<string, string> = {
+      checklist_sent: "Checklist enviado",
+      checklist_perfect: "Checklist perfeito",
+      delay: "Atraso",
+      critical_error: "Erro crítico",
+      checklist_missing: "Checklist não enviado",
+      training_completed: "Treinamento concluído"
+    };
+    return labels[type] || type;
+  };
+
+  const advances = events.filter(e => e.points > 0).reduce((acc, e) => acc + e.points, 0);
+  const retreats = Math.abs(events.filter(e => e.points < 0).reduce((acc, e) => acc + e.points, 0));
+  const checklistEvents = events.filter(e => e.event_type.includes('checklist') && e.points > 0).length;
+  const perfectEvents = events.filter(e => e.event_type === 'checklist_perfect').length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -260,36 +340,28 @@ export function GoalsRaceModule() {
                 <TrendingUp className="h-4 w-4 text-emerald" />
                 <span className="text-sm text-muted-foreground">Avanços</span>
               </div>
-              <p className="text-2xl font-bold text-emerald">
-                +{events.filter(e => e.type === "advance").reduce((acc, e) => acc + e.houses, 0)}
-              </p>
+              <p className="text-2xl font-bold text-emerald">+{advances}</p>
             </div>
             <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/20">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="h-4 w-4 text-destructive" />
                 <span className="text-sm text-muted-foreground">Recuos</span>
               </div>
-              <p className="text-2xl font-bold text-destructive">
-                -{events.filter(e => e.type === "retreat").reduce((acc, e) => acc + e.houses, 0)}
-              </p>
+              <p className="text-2xl font-bold text-destructive">-{retreats}</p>
             </div>
             <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 <span className="text-sm text-muted-foreground">Checklists</span>
               </div>
-              <p className="text-2xl font-bold text-primary">
-                {events.filter(e => e.reason.includes("Checklist") && e.type === "advance").length}
-              </p>
+              <p className="text-2xl font-bold text-primary">{checklistEvents}</p>
             </div>
             <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="h-4 w-4 text-amber-500" />
                 <span className="text-sm text-muted-foreground">Perfeitos</span>
               </div>
-              <p className="text-2xl font-bold text-amber-500">
-                {events.filter(e => e.reason === "Checklist perfeito").length}
-              </p>
+              <p className="text-2xl font-bold text-amber-500">{perfectEvents}</p>
             </div>
           </div>
         </CardContent>
@@ -313,12 +385,12 @@ export function GoalsRaceModule() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-3 rounded-lg bg-emerald/5 border border-emerald/10">
-                  <span className="text-sm">Checklist enviado</span>
+                  <span className="text-sm">Checklist confirmado</span>
                   <Badge variant="outline" className="bg-emerald/10 text-emerald border-emerald/20">+1 casa</Badge>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-emerald/5 border border-emerald/10">
                   <span className="text-sm">Checklist perfeito (100%)</span>
-                  <Badge variant="outline" className="bg-emerald/10 text-emerald border-emerald/20">+2 casas</Badge>
+                  <Badge variant="outline" className="bg-emerald/10 text-emerald border-emerald/20">+3 casas</Badge>
                 </div>
               </div>
             </div>
@@ -357,44 +429,63 @@ export function GoalsRaceModule() {
           <CardDescription>Últimos movimentos na corrida</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {events.map((event) => (
-              <div 
-                key={event.id}
-                className={cn(
-                  "flex items-center gap-4 p-4 rounded-xl border transition-colors",
-                  event.type === "advance" 
-                    ? "bg-emerald/5 border-emerald/10" 
-                    : "bg-destructive/5 border-destructive/10"
-                )}
-              >
-                <div className={cn(
-                  "h-10 w-10 rounded-lg flex items-center justify-center",
-                  event.type === "advance" ? "bg-emerald/10" : "bg-destructive/10"
-                )}>
-                  {getEventIcon(event)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-foreground">{event.reason}</p>
-                    <Badge 
-                      variant="outline" 
-                      className={cn(
-                        "text-xs",
-                        event.type === "advance" 
-                          ? "bg-emerald/10 text-emerald border-emerald/20"
-                          : "bg-destructive/10 text-destructive border-destructive/20"
-                      )}
-                    >
-                      {event.type === "advance" ? "+" : "-"}{event.houses} {event.houses === 1 ? "casa" : "casas"}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">{event.description}</p>
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0">{event.date}</span>
+          {events.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+                <Flag className="h-8 w-8 text-muted-foreground" />
               </div>
-            ))}
-          </div>
+              <p className="text-muted-foreground font-medium mb-1">Nenhum evento registrado</p>
+              <p className="text-sm text-muted-foreground">
+                Os eventos aparecerão aqui quando checklists forem confirmados
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {events.map((event) => {
+                const isAdvance = event.points > 0;
+                return (
+                  <div 
+                    key={event.id}
+                    className={cn(
+                      "flex items-center gap-4 p-4 rounded-xl border transition-colors",
+                      isAdvance 
+                        ? "bg-emerald/5 border-emerald/10" 
+                        : "bg-destructive/5 border-destructive/10"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-10 w-10 rounded-lg flex items-center justify-center",
+                      isAdvance ? "bg-emerald/10" : "bg-destructive/10"
+                    )}>
+                      {getEventIcon(event)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground">{getEventLabel(event.event_type)}</p>
+                        <Badge 
+                          variant="outline" 
+                          className={cn(
+                            "text-xs",
+                            isAdvance 
+                              ? "bg-emerald/10 text-emerald border-emerald/20"
+                              : "bg-destructive/10 text-destructive border-destructive/20"
+                          )}
+                        >
+                          {isAdvance ? "+" : ""}{event.points} {Math.abs(event.points) === 1 ? "casa" : "casas"}
+                        </Badge>
+                      </div>
+                      {event.description && (
+                        <p className="text-sm text-muted-foreground truncate">{event.description}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {new Date(event.created_at).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
