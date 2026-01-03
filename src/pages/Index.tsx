@@ -1,33 +1,64 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { RoutineManagement } from "@/components/modules/RoutineManagement";
-import { StandardizationSystem } from "@/components/modules/StandardizationSystem";
-import { PerformanceSystem } from "@/components/modules/PerformanceSystem";
-import { ComplianceSystem } from "@/components/modules/ComplianceSystem";
-import { GovernanceSystem } from "@/components/modules/GovernanceSystem";
-import { PeopleOpsSystem } from "@/components/modules/PeopleOpsSystem";
 import { TeamModule } from "@/components/modules/TeamModule";
 import { SettingsModule } from "@/components/modules/SettingsModule";
 import { useAuth } from "@/hooks/useAuth";
 
+// Placeholder components for new modules
+const GoalsRaceModule = () => (
+  <div className="text-center py-12">
+    <h2 className="text-xl font-semibold text-foreground mb-2">Corrida das Metas</h2>
+    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
+  </div>
+);
+
+const RankingModule = () => (
+  <div className="text-center py-12">
+    <h2 className="text-xl font-semibold text-foreground mb-2">Ranking</h2>
+    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
+  </div>
+);
+
+const TrainingModule = () => (
+  <div className="text-center py-12">
+    <h2 className="text-xl font-semibold text-foreground mb-2">Treinamentos</h2>
+    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
+  </div>
+);
+
+const SupervisorModule = () => (
+  <div className="text-center py-12">
+    <h2 className="text-xl font-semibold text-foreground mb-2">Supervisora da Semana</h2>
+    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
+  </div>
+);
+
+const ChecklistHistoryModule = () => (
+  <div className="text-center py-12">
+    <h2 className="text-xl font-semibold text-foreground mb-2">Histórico de Checklists</h2>
+    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
+  </div>
+);
+
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
-  routine: { title: "Gestão de Rotina Operacional", subtitle: "SGRO - Execução diária e padrão" },
-  standardization: { title: "Padronização Operacional", subtitle: "POPs e procedimentos padrão" },
-  performance: { title: "Performance da Equipe", subtitle: "Avaliação e acompanhamento de desempenho" },
-  compliance: { title: "Compliance Operacional", subtitle: "Normas, conduta e processos internos" },
-  governance: { title: "Governança Operacional", subtitle: "Processos e decisões organizacionais" },
-  "people-ops": { title: "People & Ops", subtitle: "Gestão de pessoas + operação" },
+  checklist: { title: "Checklist Diário", subtitle: "Avaliação diária da equipe" },
+  "goals-race": { title: "Corrida das Metas", subtitle: "Acompanhe o progresso das metas" },
+  ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
+  training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
+  supervisor: { title: "Supervisora da Semana", subtitle: "Gestão da supervisão semanal" },
+  "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
 };
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, loading, signOut } = useAuth();
+  const { signOut } = useAuth();
   const [activeItem, setActiveItem] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const currentPage = pageTitles[activeItem] || pageTitles.dashboard;
@@ -52,20 +83,20 @@ const Index = () => {
     switch (activeItem) {
       case "dashboard":
         return <Dashboard />;
-      case "routine":
+      case "checklist":
         return <RoutineManagement />;
-      case "standardization":
-        return <StandardizationSystem />;
-      case "performance":
-        return <PerformanceSystem />;
-      case "compliance":
-        return <ComplianceSystem />;
-      case "governance":
-        return <GovernanceSystem />;
-      case "people-ops":
-        return <PeopleOpsSystem />;
+      case "goals-race":
+        return <GoalsRaceModule />;
+      case "ranking":
+        return <RankingModule />;
+      case "training":
+        return <TrainingModule />;
       case "team":
         return <TeamModule />;
+      case "supervisor":
+        return <SupervisorModule />;
+      case "checklist-history":
+        return <ChecklistHistoryModule />;
       case "settings":
         return <SettingsModule />;
       default:

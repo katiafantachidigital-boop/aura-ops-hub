@@ -1,15 +1,15 @@
 import { 
   LayoutDashboard, 
   Users, 
-  TrendingUp, 
   Settings, 
   LogOut,
   Sparkles,
-  ListChecks,
-  FileText,
-  Shield,
-  Building2,
-  UsersRound,
+  ClipboardCheck,
+  Target,
+  Trophy,
+  GraduationCap,
+  Crown,
+  History,
   Menu,
   X
 } from "lucide-react";
@@ -25,23 +25,23 @@ interface SidebarProps {
 
 const mainItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "routine", label: "Rotina Operacional", icon: ListChecks },
-  { id: "standardization", label: "Padronização", icon: FileText },
+];
+
+const operationItems = [
+  { id: "checklist", label: "Checklist Diário", icon: ClipboardCheck },
+  { id: "goals-race", label: "Corrida das Metas", icon: Target },
+  { id: "ranking", label: "Ranking", icon: Trophy },
+  { id: "training", label: "Treinamentos", icon: GraduationCap },
 ];
 
 const managementItems = [
-  { id: "performance", label: "Performance", icon: TrendingUp },
-  { id: "compliance", label: "Compliance", icon: Shield },
-  { id: "governance", label: "Governança", icon: Building2 },
-  { id: "people-ops", label: "People & Ops", icon: UsersRound },
-];
-
-const operationalItems = [
   { id: "team", label: "Equipe", icon: Users },
+  { id: "supervisor", label: "Supervisora da Semana", icon: Crown },
+  { id: "checklist-history", label: "Histórico de Checklists", icon: History },
+  { id: "settings", label: "Configurações", icon: Settings },
 ];
 
 const bottomItems = [
-  { id: "settings", label: "Configurações", icon: Settings },
   { id: "logout", label: "Sair", icon: LogOut },
 ];
 
@@ -84,7 +84,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          {/* Main */}
+          {/* Principal */}
           <p className={cn(
             "px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40 transition-opacity",
             isOpen ? "opacity-100" : "lg:opacity-0"
@@ -115,15 +115,15 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
             })}
           </div>
 
-          {/* Management */}
+          {/* Operação */}
           <p className={cn(
             "px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40 transition-opacity",
             isOpen ? "opacity-100" : "lg:opacity-0"
           )}>
-            Gestão
+            Operação
           </p>
           <div className="space-y-1 mb-6">
-            {managementItems.map((item) => {
+            {operationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeItem === item.id;
               return (
@@ -146,15 +146,15 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
             })}
           </div>
 
-          {/* Operational */}
+          {/* Gestão */}
           <p className={cn(
             "px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40 transition-opacity",
             isOpen ? "opacity-100" : "lg:opacity-0"
           )}>
-            Operacional
+            Gestão
           </p>
           <div className="space-y-1">
-            {operationalItems.map((item) => {
+            {managementItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeItem === item.id;
               return (
