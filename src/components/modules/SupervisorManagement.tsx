@@ -134,7 +134,7 @@ export function SupervisorManagement() {
 
       if (updateError) throw updateError;
 
-      toast.success("Supervisora promovida com sucesso!");
+      toast.success("Supervisor promovido com sucesso!");
       loadData();
     } catch (error) {
       console.error("Error promoting supervisor:", error);
@@ -161,7 +161,7 @@ export function SupervisorManagement() {
         .delete()
         .eq("id", currentSupervisor.id);
 
-      toast.success("Supervisora removida com sucesso!");
+      toast.success("Supervisor removido com sucesso!");
       loadData();
     } catch (error) {
       console.error("Error demoting supervisor:", error);
@@ -220,7 +220,7 @@ export function SupervisorManagement() {
               <Crown className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <CardTitle>Supervisora da Semana</CardTitle>
+              <CardTitle>Supervisor da Semana</CardTitle>
               <CardDescription>
                 {format(weekStart, "dd/MM", { locale: ptBR })} - {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
               </CardDescription>
@@ -243,7 +243,7 @@ export function SupervisorManagement() {
                     <Badge variant="secondary">{supervisorProfile.shift}</Badge>
                     <Badge className="bg-primary/10 text-primary border-primary/20">
                       <Crown className="h-3 w-3 mr-1" />
-                      Supervisora
+                      Supervisor
                     </Badge>
                   </div>
                 </div>
@@ -267,8 +267,8 @@ export function SupervisorManagement() {
           ) : (
             <div className="text-center py-6 text-muted-foreground">
               <AlertCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>Nenhuma supervisora designada esta semana</p>
-              <p className="text-sm">Selecione uma colaboradora abaixo para promover</p>
+              <p>Nenhum supervisor designado esta semana</p>
+              <p className="text-sm">Selecione um colaborador abaixo para promover</p>
             </div>
           )}
         </CardContent>
@@ -325,9 +325,9 @@ export function SupervisorManagement() {
       {/* Team Members List */}
       <Card>
         <CardHeader>
-          <CardTitle>Colaboradoras</CardTitle>
+          <CardTitle>Colaboradores</CardTitle>
           <CardDescription>
-            Selecione uma colaboradora para promover a supervisora da semana
+            Selecione um colaborador para promover a supervisor da semana
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -335,7 +335,7 @@ export function SupervisorManagement() {
             <div className="space-y-3">
               {profiles.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">
-                  Nenhuma colaboradora cadastrada
+                  Nenhum colaborador cadastrado
                 </p>
               ) : (
                 profiles.map((profile) => {
@@ -368,7 +368,7 @@ export function SupervisorManagement() {
                             {isSupervisor && (
                               <Badge className="bg-primary/10 text-primary border-primary/20 text-xs">
                                 <Crown className="h-3 w-3 mr-1" />
-                                Supervisora
+                                Supervisor
                               </Badge>
                             )}
                           </div>

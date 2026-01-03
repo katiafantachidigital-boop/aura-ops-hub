@@ -77,21 +77,8 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
       ],
     },
     {
-      id: "operational",
-      title: "4. Organização Operacional",
-      icon: ClipboardList,
-      items: [
-        { id: "o1", label: "Check-list anterior foi revisado pela supervisora", value: null },
-        { id: "o2", label: "Escala de horários atualizada e visível à equipe", value: null },
-        { id: "o3", label: "Materiais de consumo devidamente repostos", value: null },
-        { id: "o4", label: "Equipamentos funcionando corretamente", value: null },
-        { id: "o5", label: "Sistema e agenda do dia revisados pela recepção", value: null },
-        { id: "o6", label: "Caixa e relatórios financeiros conferidos", value: null },
-      ],
-    },
-    {
       id: "behavior",
-      title: "5. Comportamento e Clima Organizacional",
+      title: "4. Comportamento e Clima Organizacional",
       icon: Users,
       items: [
         { id: "b1", label: "Ambiente tranquilo e sem ruídos excessivos", value: null },
@@ -217,15 +204,11 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
         return;
       }
 
-      // Get all items for determining if perfect
-      const allYes = getYesCount() === totalItems;
-
-      // Prepare checklist data
+      // Prepare checklist data (is_perfect will be calculated by the database)
       const checklistData = {
         submitted_by: user.id,
         submitted_by_name: supervisorName.trim(),
         checklist_date: today,
-        is_perfect: allYes,
         // Punctuality
         punctuality_on_time: sections[0].items[0].value,
         punctuality_uniforms: sections[0].items[1].value,
@@ -246,19 +229,12 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
         service_post_cleaning: sections[2].items[3].value,
         service_explanations: sections[2].items[4].value,
         service_satisfied: sections[2].items[5].value,
-        // Operations
-        operations_previous_checklist: sections[3].items[0].value,
-        operations_schedule_visible: sections[3].items[1].value,
-        operations_materials_stocked: sections[3].items[2].value,
-        operations_equipment_working: sections[3].items[3].value,
-        operations_agenda_reviewed: sections[3].items[4].value,
-        operations_cash_checked: sections[3].items[5].value,
         // Behavior
-        behavior_quiet_environment: sections[4].items[0].value,
-        behavior_clear_communication: sections[4].items[1].value,
-        behavior_no_conflicts: sections[4].items[2].value,
-        behavior_proactivity: sections[4].items[3].value,
-        behavior_positive_climate: sections[4].items[4].value,
+        behavior_quiet_environment: sections[3].items[0].value,
+        behavior_clear_communication: sections[3].items[1].value,
+        behavior_no_conflicts: sections[3].items[2].value,
+        behavior_proactivity: sections[3].items[3].value,
+        behavior_positive_climate: sections[3].items[4].value,
       };
 
       // Insert checklist
@@ -287,9 +263,10 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
         if (occError) throw occError;
       }
 
+      const allPerfect = getYesCount() === totalItems;
       toast({
         title: "Checklist enviado com sucesso!",
-        description: `${getYesCount()}/${totalItems} itens em conformidade.${allYes ? " Checklist Perfeito! ⭐" : ""}`,
+        description: `${getYesCount()}/${totalItems} itens em conformidade.${allPerfect ? " Checklist Perfeito! ⭐" : ""}`,
       });
 
       onBack();
