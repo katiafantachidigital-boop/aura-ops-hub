@@ -1,112 +1,76 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Target, TrendingUp, DollarSign, Users } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Target } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-interface Goal {
-  id: string;
-  title: string;
-  current: number;
-  target: number;
-  unit: string;
-  icon: typeof Target;
-  color: "emerald" | "rose" | "gold" | "lavender";
+interface GoalsRaceConfig {
+  current_position: number;
+  goal_target: number;
 }
 
-const goals: Goal[] = [
-  {
-    id: "1",
-    title: "Meta de Faturamento",
-    current: 78500,
-    target: 100000,
-    unit: "R$",
-    icon: DollarSign,
-    color: "emerald",
-  },
-  {
-    id: "2",
-    title: "Atendimentos",
-    current: 156,
-    target: 200,
-    unit: "",
-    icon: Users,
-    color: "rose",
-  },
-  {
-    id: "3",
-    title: "Novos Clientes",
-    current: 28,
-    target: 40,
-    unit: "",
-    icon: TrendingUp,
-    color: "gold",
-  },
-];
-
-const colorClasses = {
-  emerald: "text-emerald",
-  rose: "text-rose-gold-dark",
-  gold: "text-gold",
-  lavender: "text-lavender-dark",
-};
-
-const bgColorClasses = {
-  emerald: "bg-emerald-light",
-  rose: "bg-rose-gold-light",
-  gold: "bg-gold-light",
-  lavender: "bg-lavender",
-};
-
 export function GoalsProgress() {
+  const [config, setConfig] = useState<GoalsRaceConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadConfig = async () => {
+      const { data } = await supabase
+        .from('goals_race_config')
+        .select('current_position, goal_target')
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      setConfig(data);
+      setLoading(false);
+    };
+
+    loadConfig();
+  }, []);
+
+  const percentage = config ? Math.round((config.current_position / config.goal_target) * 100) : 0;
+
   return (
     <Card variant="glass" className="animate-fade-in" style={{ animationDelay: "400ms" }}>
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
-            Metas do Mês
+            Corrida da Meta
           </CardTitle>
-          <span className="text-xs font-medium text-muted-foreground">
-            12 dias restantes
-          </span>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
-        {goals.map((goal, index) => {
-          const Icon = goal.icon;
-          const percentage = Math.round((goal.current / goal.target) * 100);
-          const formattedCurrent = goal.unit === "R$" 
-            ? `R$ ${goal.current.toLocaleString('pt-BR')}` 
-            : goal.current;
-          const formattedTarget = goal.unit === "R$" 
-            ? `R$ ${goal.target.toLocaleString('pt-BR')}` 
-            : goal.target;
-
-          return (
-            <div
-              key={goal.id}
-              className="space-y-3 animate-fade-in"
-              style={{ animationDelay: `${500 + index * 100}ms` }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={cn("flex h-8 w-8 items-center justify-center rounded-lg", bgColorClasses[goal.color])}>
-                    <Icon className={cn("h-4 w-4", colorClasses[goal.color])} />
-                  </div>
-                  <span className="text-sm font-medium text-foreground">{goal.title}</span>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : config ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+                  <Target className="h-4 w-4 text-primary" />
                 </div>
-                <span className={cn("text-sm font-bold", colorClasses[goal.color])}>
-                  {percentage}%
-                </span>
+                <span className="text-sm font-medium text-foreground">Progresso da Equipe</span>
               </div>
-              <Progress value={percentage} className="h-2" />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Atual: {formattedCurrent}</span>
-                <span>Meta: {formattedTarget}</span>
-              </div>
+              <span className="text-sm font-bold text-primary">
+                {percentage}%
+              </span>
             </div>
-          );
-        })}
+            <Progress value={percentage} className="h-2" />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Posição: {config.current_position} casas</span>
+              <span>Meta: {config.goal_target} casas</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <p className="text-muted-foreground text-sm">
+              Configure a Corrida da Meta para ver o progresso
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
