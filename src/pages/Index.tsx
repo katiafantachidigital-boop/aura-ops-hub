@@ -8,6 +8,8 @@ import { PerformanceSystem } from "@/components/modules/PerformanceSystem";
 import { ComplianceSystem } from "@/components/modules/ComplianceSystem";
 import { GovernanceSystem } from "@/components/modules/GovernanceSystem";
 import { PeopleOpsSystem } from "@/components/modules/PeopleOpsSystem";
+import { TeamModule } from "@/components/modules/TeamModule";
+import { SettingsModule } from "@/components/modules/SettingsModule";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
@@ -18,15 +20,12 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   governance: { title: "Governança Operacional", subtitle: "Processos e decisões organizacionais" },
   "people-ops": { title: "People & Ops", subtitle: "Gestão de pessoas + operação" },
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
-  appointments: { title: "Agendamentos", subtitle: "Controle de agendamentos e consultas" },
-  goals: { title: "Metas", subtitle: "Acompanhamento de metas e objetivos" },
-  recognition: { title: "Reconhecimento", subtitle: "Programa de reconhecimento" },
-  procedures: { title: "Procedimentos", subtitle: "Catálogo de procedimentos" },
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
 };
 
 const Index = () => {
   const [activeItem, setActiveItem] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const currentPage = pageTitles[activeItem] || pageTitles.dashboard;
 
   const renderContent = () => {
@@ -45,36 +44,49 @@ const Index = () => {
         return <GovernanceSystem />;
       case "people-ops":
         return <PeopleOpsSystem />;
+      case "team":
+        return <TeamModule />;
+      case "settings":
+        return <SettingsModule />;
       default:
-        return (
-          <div className="flex items-center justify-center h-[60vh]">
-            <div className="text-center space-y-4 animate-fade-in">
-              <div className="w-16 h-16 mx-auto rounded-2xl gradient-primary flex items-center justify-center shadow-glow">
-                <span className="text-2xl">🚧</span>
-              </div>
-              <h2 className="text-xl font-semibold text-foreground">
-                {currentPage.title}
-              </h2>
-              <p className="text-muted-foreground max-w-md">
-                Esta seção está em desenvolvimento. Em breve você terá acesso a todas as funcionalidades de {currentPage.title.toLowerCase()}.
-              </p>
-            </div>
-          </div>
-        );
+        return <Dashboard />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar activeItem={activeItem} onItemClick={setActiveItem} />
+    <div className="flex h-screen w-full overflow-hidden bg-background">
+      {/* Sidebar */}
+      <Sidebar 
+        activeItem={activeItem} 
+        onItemClick={setActiveItem}
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+      />
       
-      <main className="pl-64">
-        <Header title={currentPage.title} subtitle={currentPage.subtitle} />
+      {/* Main Content Area */}
+      <div className={`flex flex-1 flex-col min-w-0 transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-16'}`}>
+        <Header 
+          title={currentPage.title} 
+          subtitle={currentPage.subtitle}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          sidebarOpen={sidebarOpen}
+        />
         
-        <div className="p-6">
-          {renderContent()}
-        </div>
-      </main>
+        {/* Scrollable Content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-4 md:p-6 max-w-full">
+            {renderContent()}
+          </div>
+        </main>
+      </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };
