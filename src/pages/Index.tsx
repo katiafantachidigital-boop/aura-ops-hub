@@ -7,15 +7,9 @@ import { RoutineManagement } from "@/components/modules/RoutineManagement";
 import { TeamModule } from "@/components/modules/TeamModule";
 import { SettingsModule } from "@/components/modules/SettingsModule";
 import { useAuth } from "@/hooks/useAuth";
+import { GoalsRaceModule } from "@/components/modules/GoalsRaceModule";
 
 // Placeholder components for new modules
-const GoalsRaceModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Corrida das Metas</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
-
 const RankingModule = () => (
   <div className="text-center py-12">
     <h2 className="text-xl font-semibold text-foreground mb-2">Ranking</h2>
@@ -47,7 +41,7 @@ const ChecklistHistoryModule = () => (
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
   checklist: { title: "Checklist Diário", subtitle: "Avaliação diária da equipe" },
-  "goals-race": { title: "Corrida das Metas", subtitle: "Acompanhe o progresso das metas" },
+  "goals-race": { title: "Corrida da Meta", subtitle: "Acompanhe o progresso da equipe" },
   ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
   training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
