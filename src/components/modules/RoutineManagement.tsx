@@ -1,178 +1,205 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { 
-  CheckCircle2, 
-  Clock, 
-  AlertTriangle, 
-  ListChecks,
-  Calendar,
-  User,
-  MoreVertical
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ClipboardList, Plus, CheckCircle2, Clock, AlertCircle, Calendar, User } from "lucide-react";
+import { DailyChecklistForm } from "./DailyChecklistForm";
 import { cn } from "@/lib/utils";
 
-interface Task {
+interface SubmittedChecklist {
   id: string;
-  title: string;
-  assignee: string;
-  time: string;
-  status: "completed" | "in-progress" | "pending" | "overdue";
-  priority: "high" | "medium" | "low";
+  date: string;
+  responsible: string;
+  status: "completed" | "pending" | "issues";
+  score: number;
+  totalItems: number;
 }
 
-const dailyTasks: Task[] = [
-  { id: "1", title: "Abertura da clínica - Checklist", assignee: "Recepção", time: "07:30", status: "completed", priority: "high" },
-  { id: "2", title: "Verificação de estoque de insumos", assignee: "Carla M.", time: "08:00", status: "completed", priority: "medium" },
-  { id: "3", title: "Preparação das salas de atendimento", assignee: "Equipe", time: "08:15", status: "in-progress", priority: "high" },
-  { id: "4", title: "Confirmação de agendamentos do dia", assignee: "Recepção", time: "08:30", status: "pending", priority: "high" },
-  { id: "5", title: "Reunião de alinhamento matinal", assignee: "Todos", time: "09:00", status: "pending", priority: "medium" },
-  { id: "6", title: "Atualização do sistema de prontuários", assignee: "Admin", time: "17:00", status: "pending", priority: "low" },
-  { id: "7", title: "Fechamento de caixa", assignee: "Financeiro", time: "18:30", status: "pending", priority: "high" },
-  { id: "8", title: "Checklist de encerramento", assignee: "Recepção", time: "19:00", status: "pending", priority: "high" },
+const submittedChecklists: SubmittedChecklist[] = [
+  {
+    id: "1",
+    date: "03/01/2026",
+    responsible: "Carla Mendes",
+    status: "completed",
+    score: 18,
+    totalItems: 19,
+  },
+  {
+    id: "2",
+    date: "02/01/2026",
+    responsible: "Juliana Santos",
+    status: "completed",
+    score: 19,
+    totalItems: 19,
+  },
+  {
+    id: "3",
+    date: "01/01/2026",
+    responsible: "Patricia Lima",
+    status: "issues",
+    score: 14,
+    totalItems: 19,
+  },
+  {
+    id: "4",
+    date: "31/12/2025",
+    responsible: "Carla Mendes",
+    status: "completed",
+    score: 17,
+    totalItems: 19,
+  },
+  {
+    id: "5",
+    date: "30/12/2025",
+    responsible: "Fernanda Costa",
+    status: "pending",
+    score: 0,
+    totalItems: 19,
+  },
 ];
 
 const statusConfig = {
-  completed: { icon: CheckCircle2, color: "text-emerald bg-emerald-light", label: "Concluído" },
-  "in-progress": { icon: Clock, color: "text-gold bg-gold-light", label: "Em andamento" },
-  pending: { icon: ListChecks, color: "text-muted-foreground bg-muted", label: "Pendente" },
-  overdue: { icon: AlertTriangle, color: "text-destructive bg-destructive/10", label: "Atrasado" },
-};
-
-const priorityColors = {
-  high: "bg-destructive/10 text-destructive border-destructive/20",
-  medium: "bg-gold-light text-gold border-gold/20",
-  low: "bg-muted text-muted-foreground border-border",
+  completed: {
+    label: "Concluído",
+    icon: CheckCircle2,
+    className: "bg-emerald-light text-emerald border-emerald/20",
+  },
+  pending: {
+    label: "Pendente",
+    icon: Clock,
+    className: "bg-gold-light text-gold border-gold/20",
+  },
+  issues: {
+    label: "Com Pendências",
+    icon: AlertCircle,
+    className: "bg-destructive/10 text-destructive border-destructive/20",
+  },
 };
 
 export function RoutineManagement() {
-  const completedTasks = dailyTasks.filter(t => t.status === "completed").length;
-  const totalTasks = dailyTasks.length;
-  const progressPercentage = Math.round((completedTasks / totalTasks) * 100);
+  const [showForm, setShowForm] = useState(false);
+
+  if (showForm) {
+    return <DailyChecklistForm onBack={() => setShowForm(false)} />;
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card variant="stat" className="animate-fade-in">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Progresso do Dia</p>
-                <p className="text-2xl font-bold">{progressPercentage}%</p>
-              </div>
-              <div className="h-12 w-12 rounded-xl bg-emerald-light flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-emerald" />
-              </div>
-            </div>
-            <Progress value={progressPercentage} className="mt-3 h-2" />
-          </CardContent>
-        </Card>
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl gradient-primary shadow-glow">
+            <ClipboardList className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Rotina Operacional</h1>
+            <p className="text-muted-foreground mt-1">
+              Execução diária e padrão da clínica
+            </p>
+          </div>
+        </div>
 
-        <Card variant="stat" className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Tarefas Concluídas</p>
-                <p className="text-2xl font-bold">{completedTasks}/{totalTasks}</p>
-              </div>
-              <div className="h-12 w-12 rounded-xl bg-gold-light flex items-center justify-center">
-                <ListChecks className="h-6 w-6 text-gold" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Button 
+          size="lg" 
+          className="gap-2"
+          onClick={() => setShowForm(true)}
+        >
+          <Plus className="h-5 w-5" />
+          Enviar Checklist Diário
+        </Button>
+      </div>
 
-        <Card variant="stat" className="animate-fade-in" style={{ animationDelay: "200ms" }}>
-          <CardContent className="pt-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card variant="stat">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Próxima Tarefa</p>
-                <p className="text-lg font-bold truncate">Prep. Salas</p>
+                <p className="text-sm text-muted-foreground">Checklists Este Mês</p>
+                <p className="text-2xl font-bold text-foreground mt-1">23</p>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-lavender flex items-center justify-center">
-                <Clock className="h-6 w-6 text-lavender-dark" />
+              <div className="h-10 w-10 rounded-lg bg-emerald-light flex items-center justify-center">
+                <ClipboardList className="h-5 w-5 text-emerald" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card variant="stat" className="animate-fade-in" style={{ animationDelay: "300ms" }}>
-          <CardContent className="pt-6">
+        <Card variant="stat">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Atrasadas</p>
-                <p className="text-2xl font-bold text-destructive">0</p>
+                <p className="text-sm text-muted-foreground">Taxa de Conformidade</p>
+                <p className="text-2xl font-bold text-foreground mt-1">94.2%</p>
               </div>
-              <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-destructive" />
+              <div className="h-10 w-10 rounded-lg bg-gold-light flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 text-gold" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card variant="stat">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Pendências</p>
+                <p className="text-2xl font-bold text-foreground mt-1">2</p>
+              </div>
+              <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-destructive" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Daily Tasks */}
-      <Card variant="glass" className="animate-fade-in" style={{ animationDelay: "400ms" }}>
+      {/* Submitted Checklists */}
+      <Card variant="glass">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              Rotina Operacional do Dia
-            </CardTitle>
-            <Badge variant="outline" className="text-xs">
-              {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </Badge>
-          </div>
+          <CardTitle>Checklists Enviados</CardTitle>
+          <CardDescription>Histórico de checklists diários submetidos</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {dailyTasks.map((task, index) => {
-              const status = statusConfig[task.status];
-              const StatusIcon = status.icon;
+            {submittedChecklists.map((checklist, index) => {
+              const config = statusConfig[checklist.status];
+              const StatusIcon = config.icon;
+              const percentage = Math.round((checklist.score / checklist.totalItems) * 100);
 
               return (
                 <div
-                  key={task.id}
-                  className={cn(
-                    "flex items-center gap-4 p-4 rounded-xl border transition-all duration-200 hover:shadow-soft animate-fade-in",
-                    task.status === "completed" ? "bg-muted/30 opacity-70" : "bg-card"
-                  )}
-                  style={{ animationDelay: `${500 + index * 50}ms` }}
+                  key={checklist.id}
+                  className="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/50 transition-all duration-200 animate-fade-in"
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", status.color)}>
-                    <StatusIcon className="h-5 w-5" />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className={cn("font-medium", task.status === "completed" && "line-through text-muted-foreground")}>
-                        {task.title}
-                      </p>
-                      <Badge variant="outline" className={cn("text-[10px] px-1.5", priorityColors[task.priority])}>
-                        {task.priority === "high" ? "Alta" : task.priority === "medium" ? "Média" : "Baixa"}
-                      </Badge>
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        {task.assignee}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {task.time}
-                      </span>
+                    <div>
+                      <p className="font-medium text-foreground">{checklist.date}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">{checklist.responsible}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <Badge variant="secondary" className="text-xs">
-                    {status.label}
-                  </Badge>
-
-                  <Button variant="ghost" size="icon" className="shrink-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-4">
+                    {checklist.status !== "pending" && (
+                      <div className="text-right hidden sm:block">
+                        <p className="text-sm font-medium text-foreground">
+                          {checklist.score}/{checklist.totalItems}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{percentage}% conforme</p>
+                      </div>
+                    )}
+                    <Badge className={cn("gap-1.5", config.className)}>
+                      <StatusIcon className="h-3.5 w-3.5" />
+                      {config.label}
+                    </Badge>
+                  </div>
                 </div>
               );
             })}
