@@ -67,11 +67,19 @@ export default function Auth() {
 
         const { error } = await signUp(email, password, fullName);
         if (error) {
-          if (error.message.includes("User already registered")) {
-            setError("Este email já está cadastrado");
+          const errorMessage = error.message.toLowerCase();
+          if (errorMessage.includes("user already registered") || errorMessage.includes("already exists")) {
+            setError("Este email já está cadastrado. Use outro email ou faça login.");
+          } else if (errorMessage.includes("password")) {
+            setError("A senha deve ter no mínimo 6 caracteres");
+          } else if (errorMessage.includes("email")) {
+            setError("Email inválido");
           } else {
-            setError(error.message);
+            setError("Erro ao criar conta. Tente novamente.");
           }
+        } else {
+          // Conta criada com sucesso - redirecionar para home
+          navigate("/");
         }
       }
     } catch (err) {
