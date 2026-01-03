@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, Plus, CheckCircle2, Clock, AlertCircle, Calendar, User, ShieldX } from "lucide-react";
+import { ClipboardList, Plus, CheckCircle2, Clock, AlertCircle, Calendar, User, ShieldX, Lock } from "lucide-react";
 import { DailyChecklistForm } from "./DailyChecklistForm";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { format, setHours, isAfter, addDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface SubmittedChecklist {
   id: string;
@@ -16,48 +19,13 @@ interface SubmittedChecklist {
   totalItems: number;
 }
 
-const submittedChecklists: SubmittedChecklist[] = [
-  {
-    id: "1",
-    date: "03/01/2026",
-    responsible: "Carla Mendes",
-    status: "completed",
-    score: 18,
-    totalItems: 19,
-  },
-  {
-    id: "2",
-    date: "02/01/2026",
-    responsible: "Juliana Santos",
-    status: "completed",
-    score: 19,
-    totalItems: 19,
-  },
-  {
-    id: "3",
-    date: "01/01/2026",
-    responsible: "Patricia Lima",
-    status: "issues",
-    score: 14,
-    totalItems: 19,
-  },
-  {
-    id: "4",
-    date: "31/12/2025",
-    responsible: "Carla Mendes",
-    status: "completed",
-    score: 17,
-    totalItems: 19,
-  },
-  {
-    id: "5",
-    date: "30/12/2025",
-    responsible: "Fernanda Costa",
-    status: "pending",
-    score: 0,
-    totalItems: 19,
-  },
-];
+interface TodayChecklist {
+  id: string;
+  checklist_date: string;
+  submitted_by_name: string;
+  created_at: string;
+  is_perfect: boolean | null;
+}
 
 const statusConfig = {
   completed: {
@@ -79,12 +47,67 @@ const statusConfig = {
 
 export function RoutineManagement() {
   const [showForm, setShowForm] = useState(false);
-  // TEMPORARILY DISABLED: Auth check - always allow access for testing
-  // const { canSubmitChecklist } = useAuth();
-  const canSubmitChecklist = true;
+  const [todayChecklist, setTodayChecklist] = useState<TodayChecklist | null>(null);
+  const [recentChecklists, setRecentChecklists] = useState<TodayChecklist[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { canSubmitChecklist, isManager } = useAuth();
+
+  const today = new Date();
+
+  useEffect(() => {
+    loadChecklists();
+  }, []);
+
+  const loadChecklists = async () => {
+    try {
+      // Check today's checklist
+      const { data: todayData, error: todayError } = await supabase
+        .from("daily_checklists")
+        .select("id, checklist_date, submitted_by_name, created_at, is_perfect")
+        .eq("checklist_date", format(today, "yyyy-MM-dd"))
+        .maybeSingle();
+
+      if (todayError) throw todayError;
+      setTodayChecklist(todayData);
+
+      // Load recent checklists
+      const { data: recentData, error: recentError } = await supabase
+        .from("daily_checklists")
+        .select("id, checklist_date, submitted_by_name, created_at, is_perfect")
+        .order("checklist_date", { ascending: false })
+        .limit(10);
+
+      if (recentError) throw recentError;
+      setRecentChecklists(recentData || []);
+    } catch (error) {
+      console.error("Error loading checklists:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkTodayChecklist = loadChecklists;
+
+  // Check if it's after 7 AM
+  const isAfterSevenAM = () => {
+    const now = new Date();
+    const sevenAM = setHours(new Date(), 7);
+    sevenAM.setMinutes(0);
+    sevenAM.setSeconds(0);
+    return isAfter(now, sevenAM);
+  };
+
+  // Calculate next available time (7 AM tomorrow)
+  const getNextAvailableTime = () => {
+    const tomorrow = addDays(today, 1);
+    return setHours(tomorrow, 7);
+  };
+
+  // Can submit: has permission AND no checklist today AND after 7 AM
+  const canSubmitNow = canSubmitChecklist && !todayChecklist && isAfterSevenAM();
 
   if (showForm) {
-    return <DailyChecklistForm onBack={() => setShowForm(false)} />;
+    return <DailyChecklistForm onBack={() => { setShowForm(false); checkTodayChecklist(); }} />;
   }
 
   return (
@@ -103,7 +126,7 @@ export function RoutineManagement() {
           </div>
         </div>
 
-        {canSubmitChecklist && (
+        {canSubmitNow && (
           <Button 
             size="lg" 
             className="gap-2"
@@ -115,17 +138,61 @@ export function RoutineManagement() {
         )}
       </div>
 
-      {/* Access Restricted Message */}
-      {!canSubmitChecklist && (
-        <Card className="border-amber-200 bg-amber-50">
+      {/* Today's checklist status */}
+      {todayChecklist && (
+        <Card className="border-emerald-500/20 bg-emerald-500/5">
           <CardContent className="flex items-center gap-4 py-6">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-              <ShieldX className="h-6 w-6 text-amber-600" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
+              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-emerald-700 dark:text-emerald-400">
+                Checklist de hoje já foi enviado!
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Enviado por {todayChecklist.submitted_by_name} às{" "}
+                {format(new Date(todayChecklist.created_at), "HH:mm")}
+                {todayChecklist.is_perfect && " • Checklist Perfeito! ⭐"}
+              </p>
+            </div>
+            {!isAfterSevenAM() && (
+              <Badge variant="outline" className="gap-1">
+                <Lock className="h-3 w-3" />
+                Liberado às 7h
+              </Badge>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Access Restricted Message for non-supervisors */}
+      {!canSubmitChecklist && !todayChecklist && (
+        <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+          <CardContent className="flex items-center gap-4 py-6">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-800">
+              <ShieldX className="h-6 w-6 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <p className="font-medium text-amber-800">Acesso restrito</p>
-              <p className="text-sm text-amber-700 mt-0.5">
-                Apenas a supervisora da semana pode enviar o checklist.
+              <p className="font-medium text-amber-800 dark:text-amber-200">Acesso restrito</p>
+              <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">
+                Apenas a supervisora da semana ou a gestora podem enviar o checklist.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Waiting for 7 AM */}
+      {canSubmitChecklist && !todayChecklist && !isAfterSevenAM() && (
+        <Card className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
+          <CardContent className="flex items-center gap-4 py-6">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-800">
+              <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="font-medium text-blue-800 dark:text-blue-200">Aguardando horário</p>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-0.5">
+                O checklist pode ser enviado a partir das 7h da manhã.
               </p>
             </div>
           </CardContent>
@@ -185,12 +252,12 @@ export function RoutineManagement() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {submittedChecklists.map((checklist, index) => {
-              const config = statusConfig[checklist.status];
-              const StatusIcon = config.icon;
-              const percentage = Math.round((checklist.score / checklist.totalItems) * 100);
-
-              return (
+            {recentChecklists.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                Nenhum checklist enviado ainda
+              </p>
+            ) : (
+              recentChecklists.map((checklist, index) => (
                 <div
                   key={checklist.id}
                   className="flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/50 transition-all duration-200 animate-fade-in"
@@ -201,31 +268,28 @@ export function RoutineManagement() {
                       <Calendar className="h-5 w-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">{checklist.date}</p>
+                      <p className="font-medium text-foreground">
+                        {format(new Date(checklist.checklist_date), "dd/MM/yyyy")}
+                      </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <User className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">{checklist.responsible}</span>
+                        <span className="text-sm text-muted-foreground">{checklist.submitted_by_name}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-4">
-                    {checklist.status !== "pending" && (
-                      <div className="text-right hidden sm:block">
-                        <p className="text-sm font-medium text-foreground">
-                          {checklist.score}/{checklist.totalItems}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{percentage}% conforme</p>
-                      </div>
-                    )}
-                    <Badge className={cn("gap-1.5", config.className)}>
-                      <StatusIcon className="h-3.5 w-3.5" />
-                      {config.label}
+                    <Badge className={cn("gap-1.5", checklist.is_perfect 
+                      ? "bg-emerald-light text-emerald border-emerald/20"
+                      : "bg-blue-100 text-blue-700 border-blue-200"
+                    )}>
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      {checklist.is_perfect ? "Perfeito" : "Concluído"}
                     </Badge>
                   </div>
                 </div>
-              );
-            })}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
