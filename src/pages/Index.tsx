@@ -32,12 +32,12 @@ const Index = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const currentPage = pageTitles[activeItem] || pageTitles.dashboard;
 
-  // Redirect to auth if not logged in
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
+  // TEMPORARILY DISABLED: Redirect to auth if not logged in
+  // useEffect(() => {
+  //   if (!loading && !user) {
+  //     navigate("/auth");
+  //   }
+  // }, [user, loading, navigate]);
 
   const handleItemClick = async (id: string) => {
     if (id === "logout") {
@@ -73,17 +73,19 @@ const Index = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
+  // TEMPORARILY DISABLED: Loading state
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-background">
+  //       <div className="h-8 w-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+  //     </div>
+  //   );
+  // }
 
-  if (!user) {
-    return null;
-  }
+  // TEMPORARILY DISABLED: User check
+  // if (!user) {
+  //   return null;
+  // }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
