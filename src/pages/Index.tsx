@@ -28,7 +28,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
   training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
-  supervisor: { title: "Supervisora da Semana", subtitle: "Gestão da supervisão semanal" },
+  supervisor: { title: "Supervisor da Semana", subtitle: "Gestão da supervisão semanal" },
   "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
   profile: { title: "Meu Perfil", subtitle: "Seu perfil profissional" },

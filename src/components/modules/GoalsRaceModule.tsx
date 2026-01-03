@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface RaceEvent {
   id: string;
@@ -33,6 +34,7 @@ interface RaceEvent {
 
 export function GoalsRaceModule() {
   const { toast } = useToast();
+  const { isManager } = useAuth();
   const [currentPosition, setCurrentPosition] = useState(7);
   const [goalTarget, setGoalTarget] = useState(20);
   const [isConfiguring, setIsConfiguring] = useState(false);
@@ -166,14 +168,16 @@ export function GoalsRaceModule() {
             Acompanhe o progresso da equipe em direção à meta
           </p>
         </div>
-        <Button
-          variant="outline"
-          className="gap-2"
-          onClick={() => setIsConfiguring(!isConfiguring)}
-        >
-          <Settings className="h-4 w-4" />
-          Configurar Meta
-        </Button>
+        {isManager && (
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setIsConfiguring(!isConfiguring)}
+          >
+            <Settings className="h-4 w-4" />
+            Configurar Meta
+          </Button>
+        )}
       </div>
 
       {/* Configuration Panel */}
