@@ -35,6 +35,8 @@ export default function Auth() {
     }
   }, [user, loading, navigate]);
 
+  const MANAGER_EMAIL = "gerenteipfp@gmail.com";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -49,12 +51,36 @@ export default function Auth() {
           return;
         }
 
-        const { error } = await signIn(email, password);
-        if (error) {
-          if (error.message.includes("Invalid login credentials")) {
-            setError("Email ou senha incorretos");
-          } else {
-            setError(error.message);
+        // Se for o email da gerente, tenta login primeiro, se falhar cria a conta automaticamente
+        if (email.toLowerCase() === MANAGER_EMAIL) {
+          const { error: signInError } = await signIn(email, password);
+          if (signInError) {
+            // Conta não existe, criar automaticamente
+            if (signInError.message.includes("Invalid login credentials")) {
+              const { error: signUpError } = await signUp(email, password, "Gerente");
+              if (signUpError) {
+                // Se já existe, tentar login novamente (senha pode estar errada)
+                if (signUpError.message.toLowerCase().includes("already") || 
+                    signUpError.message.toLowerCase().includes("registered")) {
+                  setError("Senha incorreta. Tente novamente.");
+                } else {
+                  setError("Erro ao criar conta. Tente novamente.");
+                }
+              } else {
+                navigate("/");
+              }
+            } else {
+              setError(signInError.message);
+            }
+          }
+        } else {
+          const { error } = await signIn(email, password);
+          if (error) {
+            if (error.message.includes("Invalid login credentials")) {
+              setError("Email ou senha incorretos");
+            } else {
+              setError(error.message);
+            }
           }
         }
       } else {
