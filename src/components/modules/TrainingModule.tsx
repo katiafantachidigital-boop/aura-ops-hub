@@ -816,13 +816,18 @@ export function TrainingModule() {
 
       {/* Add Content Dialog */}
       <Dialog open={showContentDialog} onOpenChange={setShowContentDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Adicionar Conteúdo</DialogTitle>
+            <DialogTitle>Adicionar Conteúdo ao Módulo</DialogTitle>
+            {selectedModule && (
+              <p className="text-sm text-muted-foreground">
+                Módulo: {selectedModule.title}
+              </p>
+            )}
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="content-title">Título</Label>
+              <Label htmlFor="content-title">Título *</Label>
               <Input
                 id="content-title"
                 value={newContent.title}
@@ -836,6 +841,7 @@ export function TrainingModule() {
                 id="content-description"
                 value={newContent.description}
                 onChange={(e) => setNewContent(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Breve descrição do conteúdo..."
               />
             </div>
             <div className="space-y-2">
@@ -849,68 +855,99 @@ export function TrainingModule() {
                 ].map(({ type, icon: Icon, label }) => (
                   <button
                     key={type}
+                    type="button"
                     className={`flex flex-col items-center gap-1 p-3 rounded-lg border transition-colors ${
                       newContent.content_type === type
-                        ? "border-primary bg-primary/10"
+                        ? "border-primary bg-primary/10 text-primary"
                         : "border-muted hover:border-primary/50"
                     }`}
                     onClick={() => setNewContent(prev => ({ ...prev, content_type: type as any }))}
                   >
                     <Icon className="h-5 w-5" />
-                    <span className="text-xs">{label}</span>
+                    <span className="text-xs font-medium">{label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             {newContent.content_type === "text" ? (
-              <div className="space-y-2">
-                <Label htmlFor="content-text">Conteúdo</Label>
-                <Textarea
-                  id="content-text"
-                  value={newContent.content_text}
-                  onChange={(e) => setNewContent(prev => ({ ...prev, content_text: e.target.value }))}
-                  placeholder="Digite o conteúdo aqui..."
-                  rows={6}
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label>Upload de arquivo</Label>
-                <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                  <input
-                    type="file"
-                    id="file-upload"
-                    className="hidden"
-                    accept={
-                      newContent.content_type === "video" ? "video/*" :
-                      newContent.content_type === "audio" ? "audio/*" :
-                      ".pdf,.doc,.docx,.ppt,.pptx"
-                    }
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        handleCreateContent(file);
-                      }
-                    }}
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="content-text">Conteúdo</Label>
+                  <Textarea
+                    id="content-text"
+                    value={newContent.content_text}
+                    onChange={(e) => setNewContent(prev => ({ ...prev, content_text: e.target.value }))}
+                    placeholder="Digite o conteúdo aqui..."
+                    rows={6}
                   />
-                  <label
-                    htmlFor="file-upload"
-                    className="cursor-pointer flex flex-col items-center gap-2"
-                  >
-                    <Upload className="h-8 w-8 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                      Clique para selecionar ou arraste o arquivo
-                    </span>
-                  </label>
                 </div>
+                <Button 
+                  onClick={() => handleCreateContent()} 
+                  className="w-full" 
+                  disabled={uploadingFile || !newContent.title}
+                >
+                  {uploadingFile ? "Salvando..." : "Salvar Conteúdo de Texto"}
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Upload de arquivo</Label>
+                  <div 
+                    className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+                    onClick={() => document.getElementById('file-upload')?.click()}
+                  >
+                    <input
+                      type="file"
+                      id="file-upload"
+                      className="hidden"
+                      accept={
+                        newContent.content_type === "video" ? "video/*" :
+                        newContent.content_type === "audio" ? "audio/*" :
+                        ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                      }
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (!newContent.title) {
+                            toast.error("Preencha o título antes de fazer upload");
+                            return;
+                          }
+                          handleCreateContent(file);
+                        }
+                      }}
+                    />
+                    <div className="flex flex-col items-center gap-3">
+                      {uploadingFile ? (
+                        <>
+                          <div className="h-10 w-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+                          <span className="text-sm text-muted-foreground">Fazendo upload...</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+                            <Upload className="h-7 w-7 text-primary" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Clique para selecionar</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {newContent.content_type === "video" && "Formatos: MP4, MOV, AVI, WebM"}
+                              {newContent.content_type === "audio" && "Formatos: MP3, WAV, M4A, OGG"}
+                              {newContent.content_type === "document" && "Formatos: PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX"}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {!newContent.title && (
+                  <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                    ⚠️ Preencha o título antes de fazer o upload do arquivo
+                  </p>
+                )}
               </div>
-            )}
-
-            {newContent.content_type === "text" && (
-              <Button onClick={() => handleCreateContent()} className="w-full" disabled={uploadingFile}>
-                {uploadingFile ? "Salvando..." : "Salvar Conteúdo"}
-              </Button>
             )}
           </div>
         </DialogContent>
