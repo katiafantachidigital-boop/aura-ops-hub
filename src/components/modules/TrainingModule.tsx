@@ -83,7 +83,7 @@ const FUNCTION_OPTIONS = [
   "Serviços Gerais",
 ];
 
-const MANAGER_EMAIL = "importacaofilms@gmail.com";
+const MANAGER_EMAIL = "gerenteipfp@gmail.com";
 
 export function TrainingModule() {
   const { user, profile } = useAuth();
