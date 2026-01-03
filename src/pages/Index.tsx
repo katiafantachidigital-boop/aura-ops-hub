@@ -9,6 +9,7 @@ import { SettingsModule } from "@/components/modules/SettingsModule";
 import { useAuth } from "@/hooks/useAuth";
 import { GoalsRaceModule } from "@/components/modules/GoalsRaceModule";
 import RankingModule from "@/components/modules/RankingModule";
+import { CollaboratorProfile } from "@/components/modules/CollaboratorProfile";
 
 const TrainingModule = () => (
   <div className="text-center py-12">
@@ -41,6 +42,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   supervisor: { title: "Supervisora da Semana", subtitle: "Gestão da supervisão semanal" },
   "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
+  profile: { title: "Meu Perfil", subtitle: "Seu perfil profissional" },
 };
 
 const Index = () => {
@@ -86,6 +88,8 @@ const Index = () => {
         return <ChecklistHistoryModule />;
       case "settings":
         return <SettingsModule />;
+      case "profile":
+        return <CollaboratorProfile />;
       default:
         return <Dashboard />;
     }
