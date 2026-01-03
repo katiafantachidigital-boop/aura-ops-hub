@@ -96,6 +96,25 @@ export function SupervisorManagement() {
     loadData();
   }, []);
 
+  const ensureSupervisorRole = async (userId: string) => {
+    const { error } = await supabase
+      .from("user_roles")
+      .insert({ user_id: userId, role: "supervisora" as any });
+
+    // Ignore duplicates (in case it already exists)
+    if (error && (error as any).code !== "23505") throw error;
+  };
+
+  const removeSupervisorRole = async (userId: string) => {
+    const { error } = await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId)
+      .eq("role", "supervisora" as any);
+
+    if (error) throw error;
+  };
+
   const promoteSupervisor = async (profileId: string) => {
     if (!user) return;
     setPromoting(profileId);
@@ -112,6 +131,9 @@ export function SupervisorManagement() {
           .from("weekly_supervisors")
           .delete()
           .eq("id", currentSupervisor.id);
+
+        // Remove supervisor role from previous supervisor
+        await removeSupervisorRole(currentSupervisor.user_id);
       }
 
       // Create new weekly supervisor record
@@ -133,6 +155,9 @@ export function SupervisorManagement() {
         .eq("id", profileId);
 
       if (updateError) throw updateError;
+
+      // Ensure this user can actually submit the checklist (RLS uses user_roles)
+      await ensureSupervisorRole(profileId);
 
       toast.success("Supervisor promovido com sucesso!");
       loadData();
@@ -160,6 +185,9 @@ export function SupervisorManagement() {
         .from("weekly_supervisors")
         .delete()
         .eq("id", currentSupervisor.id);
+
+      // Remove supervisor role
+      await removeSupervisorRole(currentSupervisor.user_id);
 
       toast.success("Supervisor removido com sucesso!");
       loadData();
