@@ -14,6 +14,236 @@ export type Database = {
   }
   public: {
     Tables: {
+      checklist_occurrences: {
+        Row: {
+          action_taken: string | null
+          checklist_id: string
+          created_at: string
+          id: string
+          occurrence: string
+        }
+        Insert: {
+          action_taken?: string | null
+          checklist_id: string
+          created_at?: string
+          id?: string
+          occurrence: string
+        }
+        Update: {
+          action_taken?: string | null
+          checklist_id?: string
+          created_at?: string
+          id?: string
+          occurrence?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_occurrences_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "daily_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_checklists: {
+        Row: {
+          behavior_clear_communication: boolean | null
+          behavior_no_conflicts: boolean | null
+          behavior_positive_climate: boolean | null
+          behavior_proactivity: boolean | null
+          behavior_quiet_environment: boolean | null
+          checklist_date: string
+          cleaning_bathrooms: boolean | null
+          cleaning_common_areas: boolean | null
+          cleaning_equipment: boolean | null
+          cleaning_reception: boolean | null
+          cleaning_rooms: boolean | null
+          cleaning_towels: boolean | null
+          cleaning_trash: boolean | null
+          created_at: string
+          id: string
+          is_perfect: boolean | null
+          operations_agenda_reviewed: boolean | null
+          operations_cash_checked: boolean | null
+          operations_equipment_working: boolean | null
+          operations_materials_stocked: boolean | null
+          operations_previous_checklist: boolean | null
+          operations_schedule_visible: boolean | null
+          punctuality_hair: boolean | null
+          punctuality_makeup: boolean | null
+          punctuality_on_time: boolean | null
+          punctuality_uniforms: boolean | null
+          service_cordial: boolean | null
+          service_explanations: boolean | null
+          service_on_time: boolean | null
+          service_post_cleaning: boolean | null
+          service_room_ready: boolean | null
+          service_satisfied: boolean | null
+          submitted_by: string
+          submitted_by_name: string
+          updated_at: string
+        }
+        Insert: {
+          behavior_clear_communication?: boolean | null
+          behavior_no_conflicts?: boolean | null
+          behavior_positive_climate?: boolean | null
+          behavior_proactivity?: boolean | null
+          behavior_quiet_environment?: boolean | null
+          checklist_date?: string
+          cleaning_bathrooms?: boolean | null
+          cleaning_common_areas?: boolean | null
+          cleaning_equipment?: boolean | null
+          cleaning_reception?: boolean | null
+          cleaning_rooms?: boolean | null
+          cleaning_towels?: boolean | null
+          cleaning_trash?: boolean | null
+          created_at?: string
+          id?: string
+          is_perfect?: boolean | null
+          operations_agenda_reviewed?: boolean | null
+          operations_cash_checked?: boolean | null
+          operations_equipment_working?: boolean | null
+          operations_materials_stocked?: boolean | null
+          operations_previous_checklist?: boolean | null
+          operations_schedule_visible?: boolean | null
+          punctuality_hair?: boolean | null
+          punctuality_makeup?: boolean | null
+          punctuality_on_time?: boolean | null
+          punctuality_uniforms?: boolean | null
+          service_cordial?: boolean | null
+          service_explanations?: boolean | null
+          service_on_time?: boolean | null
+          service_post_cleaning?: boolean | null
+          service_room_ready?: boolean | null
+          service_satisfied?: boolean | null
+          submitted_by: string
+          submitted_by_name: string
+          updated_at?: string
+        }
+        Update: {
+          behavior_clear_communication?: boolean | null
+          behavior_no_conflicts?: boolean | null
+          behavior_positive_climate?: boolean | null
+          behavior_proactivity?: boolean | null
+          behavior_quiet_environment?: boolean | null
+          checklist_date?: string
+          cleaning_bathrooms?: boolean | null
+          cleaning_common_areas?: boolean | null
+          cleaning_equipment?: boolean | null
+          cleaning_reception?: boolean | null
+          cleaning_rooms?: boolean | null
+          cleaning_towels?: boolean | null
+          cleaning_trash?: boolean | null
+          created_at?: string
+          id?: string
+          is_perfect?: boolean | null
+          operations_agenda_reviewed?: boolean | null
+          operations_cash_checked?: boolean | null
+          operations_equipment_working?: boolean | null
+          operations_materials_stocked?: boolean | null
+          operations_previous_checklist?: boolean | null
+          operations_schedule_visible?: boolean | null
+          punctuality_hair?: boolean | null
+          punctuality_makeup?: boolean | null
+          punctuality_on_time?: boolean | null
+          punctuality_uniforms?: boolean | null
+          service_cordial?: boolean | null
+          service_explanations?: boolean | null
+          service_on_time?: boolean | null
+          service_post_cleaning?: boolean | null
+          service_room_ready?: boolean | null
+          service_satisfied?: boolean | null
+          submitted_by?: string
+          submitted_by_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      goals_race_config: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_position: number
+          goal_target: number
+          id: string
+          is_active: boolean
+          period_end: string | null
+          period_start: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_position?: number
+          goal_target?: number
+          id?: string
+          is_active?: boolean
+          period_end?: string | null
+          period_start?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_position?: number
+          goal_target?: number
+          id?: string
+          is_active?: boolean
+          period_end?: string | null
+          period_start?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      goals_race_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_type: Database["public"]["Enums"]["race_event_type"]
+          id: string
+          points: number
+          race_id: string
+          related_checklist_id: string | null
+          related_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_type: Database["public"]["Enums"]["race_event_type"]
+          id?: string
+          points: number
+          race_id: string
+          related_checklist_id?: string | null
+          related_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_type?: Database["public"]["Enums"]["race_event_type"]
+          id?: string
+          points?: number
+          race_id?: string
+          related_checklist_id?: string | null
+          related_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_race_events_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "goals_race_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_race_events_related_checklist_id_fkey"
+            columns: ["related_checklist_id"]
+            isOneToOne: false
+            referencedRelation: "daily_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -41,15 +271,183 @@ export type Database = {
         }
         Relationships: []
       }
+      training_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          training_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          training_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          training_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_progress_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trainings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_mandatory: boolean
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_mandatory?: boolean
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_mandatory?: boolean
+          title?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_scores: {
+        Row: {
+          checklists_sent: number
+          created_at: string
+          critical_errors: number
+          delays: number
+          id: string
+          perfect_checklists: number
+          period_start: string
+          supervisor_weeks: number
+          total_points: number | null
+          trainings_completed: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          checklists_sent?: number
+          created_at?: string
+          critical_errors?: number
+          delays?: number
+          id?: string
+          perfect_checklists?: number
+          period_start?: string
+          supervisor_weeks?: number
+          total_points?: number | null
+          trainings_completed?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          checklists_sent?: number
+          created_at?: string
+          critical_errors?: number
+          delays?: number
+          id?: string
+          perfect_checklists?: number
+          period_start?: string
+          supervisor_weeks?: number
+          total_points?: number | null
+          trainings_completed?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_supervisors: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          id: string
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          user_id?: string
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_manager_or_supervisor: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "gestora" | "supervisora" | "colaborador"
+      race_event_type:
+        | "checklist_sent"
+        | "checklist_perfect"
+        | "delay"
+        | "critical_error"
+        | "checklist_missing"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -176,6 +574,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["gestora", "supervisora", "colaborador"],
+      race_event_type: [
+        "checklist_sent",
+        "checklist_perfect",
+        "delay",
+        "critical_error",
+        "checklist_missing",
+      ],
+    },
   },
 } as const
