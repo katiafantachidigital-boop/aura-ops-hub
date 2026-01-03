@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Send, Check, X, Clock, Smile, Sparkles, ShieldCheck, Users, ClipboardList, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Send, Check, X, Clock, Smile, Sparkles, ShieldCheck, Users, ClipboardList, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,6 +19,12 @@ interface ChecklistSection {
   title: string;
   icon: typeof Clock;
   items: ChecklistItem[];
+}
+
+interface OccurrenceEntry {
+  id: string;
+  occurrence: string;
+  actionTaken: string;
 }
 
 interface DailyChecklistFormProps {
@@ -94,10 +100,32 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
     },
   ]);
 
-  const [occurrences, setOccurrences] = useState("");
-  const [actionsTaken, setActionsTaken] = useState("");
+  const [occurrenceEntries, setOccurrenceEntries] = useState<OccurrenceEntry[]>([
+    { id: "1", occurrence: "", actionTaken: "" }
+  ]);
   const [supervisorName, setSupervisorName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const addOccurrenceEntry = () => {
+    setOccurrenceEntries(prev => [
+      ...prev,
+      { id: Date.now().toString(), occurrence: "", actionTaken: "" }
+    ]);
+  };
+
+  const removeOccurrenceEntry = (id: string) => {
+    if (occurrenceEntries.length > 1) {
+      setOccurrenceEntries(prev => prev.filter(entry => entry.id !== id));
+    }
+  };
+
+  const updateOccurrenceEntry = (id: string, field: "occurrence" | "actionTaken", value: string) => {
+    setOccurrenceEntries(prev => 
+      prev.map(entry => 
+        entry.id === id ? { ...entry, [field]: value } : entry
+      )
+    );
+  };
 
   const handleItemChange = (sectionId: string, itemId: string, value: boolean) => {
     setSections(prev =>
@@ -288,43 +316,92 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
       {/* Section 6: Ocorrências e Anotações */}
       <Card variant="glass" className="animate-fade-in" style={{ animationDelay: `${sections.length * 100}ms` }}>
         <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">6. Ocorrências e Anotações do Dia</CardTitle>
+                <CardDescription>
+                  Registre cada ocorrência e a medida tomada correspondente
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-lg">6. Ocorrências e Anotações do Dia</CardTitle>
-              <CardDescription>
-                Registre qualquer ocorrência e as medidas tomadas
-              </CardDescription>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addOccurrenceEntry}
+              className="gap-1.5"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar Ocorrência
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="occurrences" className="text-sm font-medium">
-              Ocorrências registradas
-            </Label>
-            <Textarea
-              id="occurrences"
-              placeholder="Descreva as ocorrências do dia (ex: problemas com equipamentos, reclamações de clientes, etc.)"
-              value={occurrences}
-              onChange={(e) => setOccurrences(e.target.value)}
-              className="min-h-[100px] resize-none"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="actionsTaken" className="text-sm font-medium">
-              Medidas tomadas / Encaminhamentos
-            </Label>
-            <Textarea
-              id="actionsTaken"
-              placeholder="Descreva as medidas tomadas e os encaminhamentos realizados..."
-              value={actionsTaken}
-              onChange={(e) => setActionsTaken(e.target.value)}
-              className="min-h-[100px] resize-none"
-            />
-          </div>
+          {occurrenceEntries.map((entry, index) => (
+            <div 
+              key={entry.id}
+              className="relative p-4 rounded-xl border border-border bg-muted/30 space-y-4"
+            >
+              {/* Entry header with number and delete button */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Ocorrência #{index + 1}
+                </span>
+                {occurrenceEntries.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeOccurrenceEntry(entry.id)}
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+
+              {/* Occurrence field */}
+              <div className="space-y-2">
+                <Label htmlFor={`occurrence-${entry.id}`} className="text-sm font-medium">
+                  Ocorrência registrada
+                </Label>
+                <Textarea
+                  id={`occurrence-${entry.id}`}
+                  placeholder="Descreva a ocorrência (ex: ar condicionado ligado, reclamação de cliente, etc.)"
+                  value={entry.occurrence}
+                  onChange={(e) => updateOccurrenceEntry(entry.id, "occurrence", e.target.value)}
+                  className="min-h-[80px] resize-none"
+                />
+              </div>
+
+              {/* Action taken field - only show if occurrence has content */}
+              {entry.occurrence.trim() && (
+                <div className="space-y-2 animate-fade-in">
+                  <Label htmlFor={`action-${entry.id}`} className="text-sm font-medium">
+                    Medida tomada / Encaminhamento
+                  </Label>
+                  <Textarea
+                    id={`action-${entry.id}`}
+                    placeholder="Descreva a medida tomada para esta ocorrência..."
+                    value={entry.actionTaken}
+                    onChange={(e) => updateOccurrenceEntry(entry.id, "actionTaken", e.target.value)}
+                    className="min-h-[80px] resize-none"
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Empty state hint */}
+          {occurrenceEntries.length === 1 && !occurrenceEntries[0].occurrence.trim() && (
+            <p className="text-sm text-muted-foreground text-center py-2">
+              Se não houver ocorrências, você pode deixar o campo em branco.
+            </p>
+          )}
         </CardContent>
       </Card>
 

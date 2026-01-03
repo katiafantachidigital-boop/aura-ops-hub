@@ -29,7 +29,7 @@ const mainItems = [
 
 const operationItems = [
   { id: "checklist", label: "Checklist Diário", icon: ClipboardCheck },
-  { id: "goals-race", label: "Corrida das Metas", icon: Target },
+  { id: "goals-race", label: "Corrida da Meta", icon: Target },
   { id: "ranking", label: "Ranking", icon: Trophy },
   { id: "training", label: "Treinamentos", icon: GraduationCap },
 ];
