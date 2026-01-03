@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Send, Check, X, Clock, Smile, Sparkles, ShieldCheck, Users, ClipboardList, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
 
 interface ChecklistItem {
   id: string;
@@ -160,6 +163,8 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
     );
   };
 
+  const { user } = useAuth();
+
   const handleSubmit = async () => {
     const totalItems = getTotalItems();
     const totalAnswered = getTotalAnswered();
@@ -182,18 +187,122 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Erro de autenticação",
+        description: "Você precisa estar logado para enviar o checklist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      // Check if checklist already exists for today
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data: existingChecklist } = await supabase
+        .from("daily_checklists")
+        .select("id")
+        .eq("checklist_date", today)
+        .maybeSingle();
 
-    toast({
-      title: "Checklist enviado com sucesso!",
-      description: `${getYesCount()}/${totalItems} itens em conformidade.`,
-    });
+      if (existingChecklist) {
+        toast({
+          title: "Checklist já enviado",
+          description: "Já existe um checklist enviado para hoje. Tente novamente amanhã após às 7h.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
 
-    setIsSubmitting(false);
-    onBack();
+      // Get all items for determining if perfect
+      const allYes = getYesCount() === totalItems;
+
+      // Prepare checklist data
+      const checklistData = {
+        submitted_by: user.id,
+        submitted_by_name: supervisorName.trim(),
+        checklist_date: today,
+        is_perfect: allYes,
+        // Punctuality
+        punctuality_on_time: sections[0].items[0].value,
+        punctuality_uniforms: sections[0].items[1].value,
+        punctuality_hair: sections[0].items[2].value,
+        punctuality_makeup: sections[0].items[3].value,
+        // Cleaning
+        cleaning_reception: sections[1].items[0].value,
+        cleaning_rooms: sections[1].items[1].value,
+        cleaning_equipment: sections[1].items[2].value,
+        cleaning_towels: sections[1].items[3].value,
+        cleaning_bathrooms: sections[1].items[4].value,
+        cleaning_common_areas: sections[1].items[5].value,
+        cleaning_trash: sections[1].items[6].value,
+        // Service
+        service_cordial: sections[2].items[0].value,
+        service_on_time: sections[2].items[1].value,
+        service_room_ready: sections[2].items[2].value,
+        service_post_cleaning: sections[2].items[3].value,
+        service_explanations: sections[2].items[4].value,
+        service_satisfied: sections[2].items[5].value,
+        // Operations
+        operations_previous_checklist: sections[3].items[0].value,
+        operations_schedule_visible: sections[3].items[1].value,
+        operations_materials_stocked: sections[3].items[2].value,
+        operations_equipment_working: sections[3].items[3].value,
+        operations_agenda_reviewed: sections[3].items[4].value,
+        operations_cash_checked: sections[3].items[5].value,
+        // Behavior
+        behavior_quiet_environment: sections[4].items[0].value,
+        behavior_clear_communication: sections[4].items[1].value,
+        behavior_no_conflicts: sections[4].items[2].value,
+        behavior_proactivity: sections[4].items[3].value,
+        behavior_positive_climate: sections[4].items[4].value,
+      };
+
+      // Insert checklist
+      const { data: checklist, error: checklistError } = await supabase
+        .from("daily_checklists")
+        .insert(checklistData)
+        .select("id")
+        .single();
+
+      if (checklistError) throw checklistError;
+
+      // Insert occurrences if any
+      const occurrencesToInsert = occurrenceEntries
+        .filter(entry => entry.occurrence.trim())
+        .map(entry => ({
+          checklist_id: checklist.id,
+          occurrence: entry.occurrence.trim(),
+          action_taken: entry.actionTaken.trim() || null,
+        }));
+
+      if (occurrencesToInsert.length > 0) {
+        const { error: occError } = await supabase
+          .from("checklist_occurrences")
+          .insert(occurrencesToInsert);
+
+        if (occError) throw occError;
+      }
+
+      toast({
+        title: "Checklist enviado com sucesso!",
+        description: `${getYesCount()}/${totalItems} itens em conformidade.${allYes ? " Checklist Perfeito! ⭐" : ""}`,
+      });
+
+      onBack();
+    } catch (error: any) {
+      console.error("Error submitting checklist:", error);
+      toast({
+        title: "Erro ao enviar",
+        description: error.message || "Não foi possível enviar o checklist. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const progress = Math.round((getTotalAnswered() / getTotalItems()) * 100);

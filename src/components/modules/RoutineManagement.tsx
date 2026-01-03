@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, Plus, CheckCircle2, Clock, AlertCircle, Calendar, User, ShieldX, Lock } from "lucide-react";
+import { ClipboardList, Plus, CheckCircle2, Clock, AlertCircle, Calendar, User, ShieldX, Lock, History } from "lucide-react";
 import { DailyChecklistForm } from "./DailyChecklistForm";
+import { ChecklistHistory } from "./ChecklistHistory";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { format, setHours, isAfter, addDays } from "date-fns";
+import { format, setHours, isAfter, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface SubmittedChecklist {
@@ -47,8 +48,10 @@ const statusConfig = {
 
 export function RoutineManagement() {
   const [showForm, setShowForm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [todayChecklist, setTodayChecklist] = useState<TodayChecklist | null>(null);
   const [recentChecklists, setRecentChecklists] = useState<TodayChecklist[]>([]);
+  const [monthlyStats, setMonthlyStats] = useState({ total: 0, perfect: 0, rate: 0 });
   const [loading, setLoading] = useState(true);
   const { canSubmitChecklist, isManager } = useAuth();
 
@@ -75,10 +78,28 @@ export function RoutineManagement() {
         .from("daily_checklists")
         .select("id, checklist_date, submitted_by_name, created_at, is_perfect")
         .order("checklist_date", { ascending: false })
-        .limit(10);
+        .limit(5);
 
       if (recentError) throw recentError;
       setRecentChecklists(recentData || []);
+
+      // Load monthly stats
+      const monthStart = format(startOfMonth(today), "yyyy-MM-dd");
+      const monthEnd = format(endOfMonth(today), "yyyy-MM-dd");
+      
+      const { data: monthlyData, error: monthlyError } = await supabase
+        .from("daily_checklists")
+        .select("id, is_perfect")
+        .gte("checklist_date", monthStart)
+        .lte("checklist_date", monthEnd);
+
+      if (monthlyError) throw monthlyError;
+      
+      const total = monthlyData?.length || 0;
+      const perfect = monthlyData?.filter(c => c.is_perfect).length || 0;
+      const rate = total > 0 ? Math.round((perfect / total) * 100) : 0;
+      
+      setMonthlyStats({ total, perfect, rate });
     } catch (error) {
       console.error("Error loading checklists:", error);
     } finally {
@@ -105,6 +126,10 @@ export function RoutineManagement() {
 
   // Can submit: has permission AND no checklist today AND after 7 AM
   const canSubmitNow = canSubmitChecklist && !todayChecklist && isAfterSevenAM();
+
+  if (showHistory) {
+    return <ChecklistHistory onBack={() => { setShowHistory(false); loadChecklists(); }} />;
+  }
 
   if (showForm) {
     return <DailyChecklistForm onBack={() => { setShowForm(false); checkTodayChecklist(); }} />;
@@ -206,7 +231,7 @@ export function RoutineManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Checklists Este Mês</p>
-                <p className="text-2xl font-bold text-foreground mt-1">23</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{monthlyStats.total}</p>
               </div>
               <div className="h-10 w-10 rounded-lg bg-emerald-light flex items-center justify-center">
                 <ClipboardList className="h-5 w-5 text-emerald" />
@@ -219,11 +244,11 @@ export function RoutineManagement() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Taxa de Conformidade</p>
-                <p className="text-2xl font-bold text-foreground mt-1">94.2%</p>
+                <p className="text-sm text-muted-foreground">Checklists Perfeitos</p>
+                <p className="text-2xl font-bold text-emerald-600 mt-1">{monthlyStats.perfect}</p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-gold-light flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5 text-gold" />
+              <div className="h-10 w-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
               </div>
             </div>
           </CardContent>
@@ -233,11 +258,11 @@ export function RoutineManagement() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Pendências</p>
-                <p className="text-2xl font-bold text-foreground mt-1">2</p>
+                <p className="text-sm text-muted-foreground">Taxa de Perfeição</p>
+                <p className="text-2xl font-bold text-foreground mt-1">{monthlyStats.rate}%</p>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-destructive" />
+              <div className="h-10 w-10 rounded-lg bg-gold-light flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-gold" />
               </div>
             </div>
           </CardContent>
@@ -246,9 +271,15 @@ export function RoutineManagement() {
 
       {/* Submitted Checklists */}
       <Card variant="glass">
-        <CardHeader>
-          <CardTitle>Checklists Enviados</CardTitle>
-          <CardDescription>Histórico de checklists diários submetidos</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Checklists Recentes</CardTitle>
+            <CardDescription>Últimos checklists enviados</CardDescription>
+          </div>
+          <Button variant="outline" className="gap-2" onClick={() => setShowHistory(true)}>
+            <History className="h-4 w-4" />
+            Ver Histórico Completo
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
