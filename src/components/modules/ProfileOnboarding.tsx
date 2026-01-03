@@ -22,11 +22,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, User, Loader2 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { User, Loader2 } from "lucide-react";
+import { parse, isValid, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,9 +31,16 @@ import { toast } from "sonner";
 
 const profileSchema = z.object({
   full_name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
-  birth_date: z.date({
-    required_error: "Data de nascimento é obrigatória",
-  }),
+  birth_date: z.string()
+    .min(10, "Data de nascimento é obrigatória")
+    .refine((val) => {
+      const parsed = parse(val, "dd/MM/yyyy", new Date());
+      return isValid(parsed);
+    }, "Data inválida. Use o formato DD/MM/AAAA")
+    .refine((val) => {
+      const parsed = parse(val, "dd/MM/yyyy", new Date());
+      return parsed <= new Date() && parsed >= new Date("1940-01-01");
+    }, "Data deve estar entre 1940 e hoje"),
   shift: z.enum(["Manhã", "Tarde"], {
     required_error: "Selecione um turno",
   }),
@@ -78,6 +82,19 @@ export function ProfileOnboarding() {
 
   const selectedRole = form.watch("role");
 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "");
+    
+    if (value.length >= 2) {
+      value = value.slice(0, 2) + "/" + value.slice(2);
+    }
+    if (value.length >= 5) {
+      value = value.slice(0, 5) + "/" + value.slice(5, 9);
+    }
+    
+    form.setValue("birth_date", value);
+  };
+
   const onSubmit = async (data: ProfileFormData) => {
     if (!user) {
       toast.error("Usuário não autenticado");
@@ -87,12 +104,13 @@ export function ProfileOnboarding() {
     setIsSubmitting(true);
     try {
       const finalRole = data.role === "Outro" ? data.custom_role : data.role;
+      const parsedDate = parse(data.birth_date, "dd/MM/yyyy", new Date());
       
       const { error } = await supabase
         .from("profiles")
         .update({
           full_name: data.full_name.trim(),
-          birth_date: format(data.birth_date, "yyyy-MM-dd"),
+          birth_date: format(parsedDate, "yyyy-MM-dd"),
           shift: data.shift,
           role: finalRole,
           custom_role: data.role === "Outro" ? data.custom_role : null,
@@ -156,43 +174,17 @@ export function ProfileOnboarding() {
                 control={form.control}
                 name="birth_date"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>Data de Nascimento</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "h-11 w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
-                            ) : (
-                              <span>Selecione a data</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date("1940-01-01")
-                          }
-                          initialFocus
-                          className="p-3 pointer-events-auto"
-                          captionLayout="dropdown-buttons"
-                          fromYear={1940}
-                          toYear={new Date().getFullYear()}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <FormControl>
+                      <Input
+                        placeholder="DD/MM/AAAA"
+                        value={field.value || ""}
+                        onChange={handleDateChange}
+                        maxLength={10}
+                        className="h-11"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

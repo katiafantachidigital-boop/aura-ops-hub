@@ -10,12 +10,12 @@ import {
   GraduationCap,
   Crown,
   History,
-  Menu,
   X,
   User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 interface SidebarProps {
   activeItem: string;
@@ -24,33 +24,39 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const mainItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-];
-
-const operationItems = [
-  { id: "checklist", label: "Checklist Diário", icon: ClipboardCheck },
-  { id: "goals-race", label: "Corrida da Meta", icon: Target },
-  { id: "ranking", label: "Ranking", icon: Trophy },
-  { id: "training", label: "Treinamentos", icon: GraduationCap },
-];
-
-const managementItems = [
-  { id: "team", label: "Equipe", icon: Users },
-  { id: "supervisor", label: "Supervisora da Semana", icon: Crown },
-  { id: "checklist-history", label: "Histórico de Checklists", icon: History },
-  { id: "settings", label: "Configurações", icon: Settings },
-];
-
-const profileItems = [
-  { id: "profile", label: "Meu Perfil", icon: User },
-];
-
-const bottomItems = [
-  { id: "logout", label: "Sair", icon: LogOut },
-];
-
 export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarProps) {
+  const { isManager, canSubmitChecklist } = useAuth();
+
+  // Build operation items based on permissions
+  const operationItems = [
+    // Only show checklist for manager or supervisor
+    ...(canSubmitChecklist ? [{ id: "checklist", label: "Checklist Diário", icon: ClipboardCheck }] : []),
+    { id: "goals-race", label: "Corrida da Meta", icon: Target },
+    { id: "ranking", label: "Ranking", icon: Trophy },
+    { id: "training", label: "Treinamentos", icon: GraduationCap },
+  ];
+
+  // Management items only for manager
+  const managementItems = isManager ? [
+    { id: "team", label: "Equipe", icon: Users },
+    { id: "supervisor", label: "Supervisora da Semana", icon: Crown },
+    { id: "checklist-history", label: "Histórico de Checklists", icon: History },
+    { id: "settings", label: "Configurações", icon: Settings },
+  ] : [];
+
+  // Main items only for manager
+  const mainItems = isManager ? [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  ] : [];
+
+  const profileItems = [
+    { id: "profile", label: "Meu Perfil", icon: User },
+  ];
+
+  const bottomItems = [
+    { id: "logout", label: "Sair", icon: LogOut },
+  ];
+
   const handleItemClick = (id: string) => {
     onItemClick(id);
     // Close sidebar on mobile after selection
@@ -89,36 +95,40 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          {/* Principal */}
-          <p className={cn(
-            "px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40 transition-opacity",
-            isOpen ? "opacity-100" : "lg:opacity-0"
-          )}>
-            Principal
-          </p>
-          <div className="space-y-1 mb-6">
-            {mainItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeItem === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleItemClick(item.id)}
-                  title={!isOpen ? item.label : undefined}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-glow"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                    !isOpen && "lg:justify-center lg:px-2"
-                  )}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className={cn("transition-opacity", isOpen ? "opacity-100" : "lg:hidden")}>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Principal - only for manager */}
+          {mainItems.length > 0 && (
+            <>
+              <p className={cn(
+                "px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40 transition-opacity",
+                isOpen ? "opacity-100" : "lg:opacity-0"
+              )}>
+                Principal
+              </p>
+              <div className="space-y-1 mb-6">
+                {mainItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeItem === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleItemClick(item.id)}
+                      title={!isOpen ? item.label : undefined}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-glow"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                        !isOpen && "lg:justify-center lg:px-2"
+                      )}
+                    >
+                      <Icon className="h-5 w-5 shrink-0" />
+                      <span className={cn("transition-opacity", isOpen ? "opacity-100" : "lg:hidden")}>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           {/* Operação */}
           <p className={cn(
@@ -151,36 +161,40 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
             })}
           </div>
 
-          {/* Gestão */}
-          <p className={cn(
-            "px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40 transition-opacity",
-            isOpen ? "opacity-100" : "lg:opacity-0"
-          )}>
-            Gestão
-          </p>
-          <div className="space-y-1">
-            {managementItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeItem === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleItemClick(item.id)}
-                  title={!isOpen ? item.label : undefined}
-                  className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-glow"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
-                    !isOpen && "lg:justify-center lg:px-2"
-                  )}
-                >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className={cn("transition-opacity", isOpen ? "opacity-100" : "lg:hidden")}>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          {/* Gestão - only for manager */}
+          {managementItems.length > 0 && (
+            <>
+              <p className={cn(
+                "px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-foreground/40 transition-opacity",
+                isOpen ? "opacity-100" : "lg:opacity-0"
+              )}>
+                Gestão
+              </p>
+              <div className="space-y-1">
+                {managementItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeItem === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleItemClick(item.id)}
+                      title={!isOpen ? item.label : undefined}
+                      className={cn(
+                        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-glow"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                        !isOpen && "lg:justify-center lg:px-2"
+                      )}
+                    >
+                      <Icon className="h-5 w-5 shrink-0" />
+                      <span className={cn("transition-opacity", isOpen ? "opacity-100" : "lg:hidden")}>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </nav>
 
         {/* Bottom Navigation */}

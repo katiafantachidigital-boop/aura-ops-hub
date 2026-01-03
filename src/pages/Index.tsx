@@ -12,13 +12,7 @@ import RankingModule from "@/components/modules/RankingModule";
 import { CollaboratorProfile } from "@/components/modules/CollaboratorProfile";
 import { ProfileOnboarding } from "@/components/modules/ProfileOnboarding";
 import { TrainingModule } from "@/components/modules/TrainingModule";
-
-const SupervisorModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Supervisora da Semana</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
+import { SupervisorManagement } from "@/components/modules/SupervisorManagement";
 
 const ChecklistHistoryModule = () => (
   <div className="text-center py-12">
@@ -42,7 +36,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, loading, signOut, isProfileComplete } = useAuth();
+  const { user, loading, signOut, isProfileComplete, isManager } = useAuth();
   const [activeItem, setActiveItem] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const currentPage = pageTitles[activeItem] || pageTitles.dashboard;
@@ -63,16 +57,13 @@ const Index = () => {
     setActiveItem(id);
   };
 
-  // Check if user is manager (by email)
-  const isManager = user?.email === "importacaofilms@gmail.com";
-
   const renderContent = () => {
     switch (activeItem) {
       case "dashboard":
         // Non-managers only see ranking, goals-race and training
         return isManager ? <Dashboard /> : <RankingModule />;
       case "checklist":
-        return isManager ? <RoutineManagement /> : <RankingModule />;
+        return <RoutineManagement />;
       case "goals-race":
         return <GoalsRaceModule />;
       case "ranking":
@@ -82,7 +73,7 @@ const Index = () => {
       case "team":
         return isManager ? <TeamModule /> : <RankingModule />;
       case "supervisor":
-        return isManager ? <SupervisorModule /> : <RankingModule />;
+        return isManager ? <SupervisorManagement /> : <RankingModule />;
       case "checklist-history":
         return isManager ? <ChecklistHistoryModule /> : <RankingModule />;
       case "settings":

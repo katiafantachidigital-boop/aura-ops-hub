@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { format, startOfWeek, endOfWeek, setHours, isAfter } from "date-fns";
 
 interface Profile {
   id: string;
@@ -22,8 +23,10 @@ interface AuthContextType {
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   canSubmitChecklist: boolean;
+  checklistDisabledUntil: Date | null;
   isProfileComplete: boolean;
   refreshProfile: () => Promise<void>;
+  isManager: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -127,10 +130,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
+  // Check if user is manager (by email)
+  const isManager = user?.email === "importacaofilms@gmail.com";
+
   // Check if user can submit checklist: gestora role OR is_supervisor = true
   const canSubmitChecklist = Boolean(
-    profile?.role === "gestora" || profile?.is_supervisor === true
+    isManager || profile?.is_supervisor === true
   );
+
+  // Calculate when checklist will be available again (7 AM next day)
+  const checklistDisabledUntil: Date | null = null; // Will be calculated in components when needed
 
   // Check if profile is complete
   const isProfileComplete = Boolean(profile?.profile_completed);
@@ -146,8 +155,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signOut,
         canSubmitChecklist,
+        checklistDisabledUntil,
         isProfileComplete,
         refreshProfile,
+        isManager,
       }}
     >
       {children}
