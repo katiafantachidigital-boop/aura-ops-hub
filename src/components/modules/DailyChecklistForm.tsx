@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Send, Check, X, Clock, Smile, Sparkles, ShieldCheck } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Send, Check, X, Clock, Smile, Sparkles, ShieldCheck, Users, ClipboardList, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,47 +31,72 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
   const [sections, setSections] = useState<ChecklistSection[]>([
     {
       id: "punctuality",
-      title: "Pontualidade e Conduta",
+      title: "1. Pontualidade e Conduta",
       icon: Clock,
       items: [
         { id: "p1", label: "Colaboradores chegaram no horário estabelecido", value: null },
-        { id: "p2", label: "Uniformes limpos e padronizados", value: null },
+        { id: "p2", label: "Uniformes limpos e padronizados conforme normas", value: null },
         { id: "p3", label: "Cabelos presos e aparência profissional", value: null },
-        { id: "p4", label: "Maquiagem e acessórios dentro do padrão", value: null },
-        { id: "p5", label: "Comportamento ético e respeitoso", value: null },
-        { id: "p6", label: "Uso de celular apenas nos intervalos permitidos", value: null },
+        { id: "p4", label: "Maquiagem e acessórios dentro do padrão da clínica", value: null },
       ],
     },
     {
       id: "cleanliness",
-      title: "Limpeza e Organização",
+      title: "2. Limpeza e Organização",
       icon: Sparkles,
       items: [
-        { id: "c1", label: "Recepção limpa e organizada", value: null },
-        { id: "c2", label: "Salas higienizadas antes e após clientes", value: null },
-        { id: "c3", label: "Equipamentos limpos e guardados", value: null },
-        { id: "c4", label: "Toalhas e enxoval organizados", value: null },
+        { id: "c1", label: "Recepção limpa, aromatizada e organizada", value: null },
+        { id: "c2", label: "Salas de atendimento higienizadas antes e após cada cliente", value: null },
+        { id: "c3", label: "Equipamentos limpos e armazenados corretamente", value: null },
+        { id: "c4", label: "Toalhas e enxoval organizados (uso exclusivo profissional)", value: null },
         { id: "c5", label: "Banheiros limpos e abastecidos", value: null },
-        { id: "c6", label: "Áreas comuns limpas", value: null },
-        { id: "c7", label: "Lixeiras higienizadas", value: null },
+        { id: "c6", label: "Copas e áreas comuns limpas e sem objetos pessoais", value: null },
+        { id: "c7", label: "Lixeiras higienizadas e trocadas", value: null },
       ],
     },
     {
       id: "customer",
-      title: "Atendimento ao Cliente",
+      title: "3. Atendimento e Experiência do Cliente",
       icon: Smile,
       items: [
-        { id: "a1", label: "Atendimento cordial", value: null },
-        { id: "a2", label: "Cliente atendido no horário agendado", value: null },
-        { id: "a3", label: "Recepção acolhedora e profissional", value: null },
-        { id: "a4", label: "Informações claras sobre procedimentos", value: null },
-        { id: "a5", label: "Feedbacks dos clientes registrados", value: null },
-        { id: "a6", label: "Pós-atendimento realizado", value: null },
+        { id: "a1", label: "Atendimento cordial e sorriso no recebimento do cliente", value: null },
+        { id: "a2", label: "Paciente atendido no horário agendado", value: null },
+        { id: "a3", label: "Sala de atendimento pronta antes da chegada do paciente", value: null },
+        { id: "a4", label: "Pós-atendimento: higienização e reposição de materiais", value: null },
+        { id: "a5", label: "Cliente recebeu explicações claras sobre o procedimento", value: null },
+        { id: "a6", label: "Cliente deixou o ambiente satisfeito e tranquilo", value: null },
+      ],
+    },
+    {
+      id: "operational",
+      title: "4. Organização Operacional",
+      icon: ClipboardList,
+      items: [
+        { id: "o1", label: "Check-list anterior foi revisado pela supervisora", value: null },
+        { id: "o2", label: "Escala de horários atualizada e visível à equipe", value: null },
+        { id: "o3", label: "Materiais de consumo devidamente repostos", value: null },
+        { id: "o4", label: "Equipamentos funcionando corretamente", value: null },
+        { id: "o5", label: "Sistema e agenda do dia revisados pela recepção", value: null },
+        { id: "o6", label: "Caixa e relatórios financeiros conferidos", value: null },
+      ],
+    },
+    {
+      id: "behavior",
+      title: "5. Comportamento e Clima Organizacional",
+      icon: Users,
+      items: [
+        { id: "b1", label: "Ambiente tranquilo e sem ruídos excessivos", value: null },
+        { id: "b2", label: "Comunicação entre equipe clara e respeitosa", value: null },
+        { id: "b3", label: "Nenhum caso de conflito, fofoca ou desentendimento", value: null },
+        { id: "b4", label: "Colaboradores demonstraram proatividade", value: null },
+        { id: "b5", label: "Clima organizacional positivo e colaborativo", value: null },
       ],
     },
   ]);
 
-  const [observations, setObservations] = useState("");
+  const [occurrences, setOccurrences] = useState("");
+  const [actionsTaken, setActionsTaken] = useState("");
+  const [supervisorName, setSupervisorName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleItemChange = (sectionId: string, itemId: string, value: boolean) => {
@@ -113,6 +140,15 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
       toast({
         title: "Formulário incompleto",
         description: `Responda todos os ${totalItems} itens antes de enviar.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!supervisorName.trim()) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Informe o nome da responsável pelo checklist.",
         variant: "destructive",
       });
       return;
@@ -201,7 +237,7 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {section.items.map((item, itemIndex) => (
+              {section.items.map((item) => (
                 <div
                   key={item.id}
                   className={cn(
@@ -249,21 +285,70 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
         );
       })}
 
-      {/* Observations */}
-      <Card variant="glass">
+      {/* Section 6: Ocorrências e Anotações */}
+      <Card variant="glass" className="animate-fade-in" style={{ animationDelay: `${sections.length * 100}ms` }}>
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg">Observações</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">6. Ocorrências e Anotações do Dia</CardTitle>
+              <CardDescription>
+                Registre qualquer ocorrência e as medidas tomadas
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="occurrences" className="text-sm font-medium">
+              Ocorrências registradas
+            </Label>
+            <Textarea
+              id="occurrences"
+              placeholder="Descreva as ocorrências do dia (ex: problemas com equipamentos, reclamações de clientes, etc.)"
+              value={occurrences}
+              onChange={(e) => setOccurrences(e.target.value)}
+              className="min-h-[100px] resize-none"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="actionsTaken" className="text-sm font-medium">
+              Medidas tomadas / Encaminhamentos
+            </Label>
+            <Textarea
+              id="actionsTaken"
+              placeholder="Descreva as medidas tomadas e os encaminhamentos realizados..."
+              value={actionsTaken}
+              onChange={(e) => setActionsTaken(e.target.value)}
+              className="min-h-[100px] resize-none"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Responsável pelo Checklist */}
+      <Card variant="glass" className="animate-fade-in">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg">Responsável pelo Checklist</CardTitle>
           <CardDescription>
-            Adicione comentários ou observações relevantes (opcional)
+            Informe o nome da supervisora responsável pelo preenchimento
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Textarea
-            placeholder="Descreva qualquer ocorrência, pendência ou observação importante do dia..."
-            value={observations}
-            onChange={(e) => setObservations(e.target.value)}
-            className="min-h-[120px] resize-none"
-          />
+          <div className="space-y-2">
+            <Label htmlFor="supervisorName" className="text-sm font-medium">
+              Nome completo *
+            </Label>
+            <Input
+              id="supervisorName"
+              placeholder="Digite seu nome completo..."
+              value={supervisorName}
+              onChange={(e) => setSupervisorName(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -271,8 +356,10 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
       <div className="flex items-center justify-between p-4 rounded-xl bg-muted/50 border border-border">
         <div>
           <p className="font-medium text-foreground">
-            {getTotalAnswered() === getTotalItems()
+            {getTotalAnswered() === getTotalItems() && supervisorName.trim()
               ? "Pronto para enviar!"
+              : getTotalAnswered() === getTotalItems()
+              ? "Informe o nome da responsável"
               : `Faltam ${getTotalItems() - getTotalAnswered()} itens`}
           </p>
           <p className="text-sm text-muted-foreground">
