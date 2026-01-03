@@ -2,8 +2,9 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList, Plus, CheckCircle2, Clock, AlertCircle, Calendar, User } from "lucide-react";
+import { ClipboardList, Plus, CheckCircle2, Clock, AlertCircle, Calendar, User, ShieldX } from "lucide-react";
 import { DailyChecklistForm } from "./DailyChecklistForm";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 interface SubmittedChecklist {
@@ -78,6 +79,7 @@ const statusConfig = {
 
 export function RoutineManagement() {
   const [showForm, setShowForm] = useState(false);
+  const { canSubmitChecklist } = useAuth();
 
   if (showForm) {
     return <DailyChecklistForm onBack={() => setShowForm(false)} />;
@@ -99,15 +101,34 @@ export function RoutineManagement() {
           </div>
         </div>
 
-        <Button 
-          size="lg" 
-          className="gap-2"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="h-5 w-5" />
-          Enviar Checklist Diário
-        </Button>
+        {canSubmitChecklist && (
+          <Button 
+            size="lg" 
+            className="gap-2"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="h-5 w-5" />
+            Enviar Checklist Diário
+          </Button>
+        )}
       </div>
+
+      {/* Access Restricted Message */}
+      {!canSubmitChecklist && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="flex items-center gap-4 py-6">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+              <ShieldX className="h-6 w-6 text-amber-600" />
+            </div>
+            <div>
+              <p className="font-medium text-amber-800">Acesso restrito</p>
+              <p className="text-sm text-amber-700 mt-0.5">
+                Apenas a supervisora da semana pode enviar o checklist.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

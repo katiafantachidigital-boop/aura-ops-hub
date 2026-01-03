@@ -203,21 +203,6 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
           })}
         </div>
 
-        {/* User Profile */}
-        <div className={cn(
-          "border-t border-sidebar-border p-4 shrink-0",
-          !isOpen && "lg:p-2"
-        )}>
-          <div className={cn("flex items-center gap-3", !isOpen && "lg:justify-center")}>
-            <div className="h-10 w-10 shrink-0 rounded-full gradient-secondary flex items-center justify-center">
-              <span className="text-sm font-semibold text-rose-gold-dark">AM</span>
-            </div>
-            <div className={cn("flex-1 min-w-0 transition-opacity", isOpen ? "opacity-100" : "lg:hidden")}>
-              <p className="text-sm font-medium text-sidebar-foreground truncate">Ana Maria</p>
-              <p className="text-xs text-sidebar-foreground/60 truncate">Administradora</p>
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );
