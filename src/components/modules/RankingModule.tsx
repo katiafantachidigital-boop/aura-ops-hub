@@ -142,18 +142,22 @@ const RankingModule: React.FC = () => {
 
       if (existingScore) {
         const newTotal = Math.max(0, (existingScore.total_points || 0) + amount);
-        await supabase
+        const { error } = await supabase
           .from('user_scores')
           .update({ total_points: newTotal })
           .eq('id', existingScore.id);
+
+        if (error) throw error;
       } else {
-        await supabase
+        const { error } = await supabase
           .from('user_scores')
           .insert({
             user_id: userId,
             period_start: periodStart,
             total_points: Math.max(0, amount)
           });
+
+        if (error) throw error;
       }
 
       toast({
@@ -382,19 +386,19 @@ const RankingModule: React.FC = () => {
                                 />
                                 <Button
                                   size="sm"
-                                  variant="ghost"
+                                  variant="outline"
                                   disabled={isUpdating || !pointsToAdjust}
                                   onClick={() => handleAdjustPoints(collaborator.id, parseInt(pointsToAdjust) || 0)}
-                                  className="h-8 w-8 p-0 text-green-600"
+                                  className="h-8 w-8 p-0"
                                 >
                                   <Plus className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   size="sm"
-                                  variant="ghost"
+                                  variant="destructive"
                                   disabled={isUpdating || !pointsToAdjust}
                                   onClick={() => handleAdjustPoints(collaborator.id, -(Math.abs(parseInt(pointsToAdjust)) || 0))}
-                                  className="h-8 w-8 p-0 text-red-600"
+                                  className="h-8 w-8 p-0"
                                 >
                                   <MinusCircle className="h-4 w-4" />
                                 </Button>

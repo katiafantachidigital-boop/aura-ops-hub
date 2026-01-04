@@ -140,12 +140,14 @@ export function GoalsRaceModule() {
     try {
       const newPosition = Math.max(0, config.current_position + amount);
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('goals_race_config')
         .update({ current_position: newPosition })
         .eq('id', config.id);
 
-      await supabase
+      if (updateError) throw updateError;
+
+      const { error: eventError } = await supabase
         .from('goals_race_events')
         .insert({
           race_id: config.id,
@@ -153,6 +155,8 @@ export function GoalsRaceModule() {
           points: amount,
           description: `Ajuste manual: ${amount > 0 ? '+' : ''}${amount} casas`
         });
+
+      if (eventError) throw eventError;
 
       toast({
         title: "Corrida atualizada",
@@ -348,7 +352,6 @@ export function GoalsRaceModule() {
               <Button
                 disabled={isUpdatingRace || !racePointsToAdjust}
                 onClick={() => handleAdjustRacePosition(parseInt(racePointsToAdjust) || 0)}
-                className="bg-green-600 hover:bg-green-700"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Avançar
