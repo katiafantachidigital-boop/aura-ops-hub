@@ -511,20 +511,17 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
                     />
                     <Button
                       size="sm"
-                      variant="outline"
                       disabled={isUpdating || !rankingPoints}
                       onClick={() => handleAdjustRankingPoints(parseInt(rankingPoints) || 0)}
-                      className="bg-green-500/10 hover:bg-green-500/20 text-green-600 border-green-500/30"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Adicionar
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="destructive"
                       disabled={isUpdating || !rankingPoints}
                       onClick={() => handleAdjustRankingPoints(-(Math.abs(parseInt(rankingPoints)) || 0))}
-                      className="bg-red-500/10 hover:bg-red-500/20 text-red-600 border-red-500/30"
                     >
                       <MinusCircle className="h-4 w-4 mr-1" />
                       Remover
@@ -545,20 +542,17 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
                     />
                     <Button
                       size="sm"
-                      variant="outline"
                       disabled={isUpdating || !racePoints}
                       onClick={() => handleAdjustRacePoints(parseInt(racePoints) || 0)}
-                      className="bg-green-500/10 hover:bg-green-500/20 text-green-600 border-green-500/30"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Avançar
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="destructive"
                       disabled={isUpdating || !racePoints}
                       onClick={() => handleAdjustRacePoints(-(Math.abs(parseInt(racePoints)) || 0))}
-                      className="bg-red-500/10 hover:bg-red-500/20 text-red-600 border-red-500/30"
                     >
                       <MinusCircle className="h-4 w-4 mr-1" />
                       Recuar
