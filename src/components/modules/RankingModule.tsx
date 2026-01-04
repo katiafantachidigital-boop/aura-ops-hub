@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { 
   Trophy, 
   Medal, 
@@ -16,9 +18,14 @@ import {
   Info,
   Users,
   Target,
-  Loader2
+  Loader2,
+  Settings2,
+  Plus,
+  MinusCircle
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from '@/hooks/use-toast';
 
 interface UserScore {
   user_id: string;
@@ -55,9 +62,14 @@ interface GoalsRaceConfig {
 }
 
 const RankingModule: React.FC = () => {
+  const { isManager } = useAuth();
   const [collaborators, setCollaborators] = useState<CollaboratorRanking[]>([]);
   const [raceConfig, setRaceConfig] = useState<GoalsRaceConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPointsControl, setShowPointsControl] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [pointsToAdjust, setPointsToAdjust] = useState<string>("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -112,6 +124,56 @@ const RankingModule: React.FC = () => {
 
     setCollaborators(combined.sort((a, b) => b.points - a.points));
     setLoading(false);
+  };
+
+  const handleAdjustPoints = async (userId: string, amount: number) => {
+    setIsUpdating(true);
+    try {
+      const currentPeriod = new Date();
+      currentPeriod.setDate(1);
+      const periodStart = currentPeriod.toISOString().split('T')[0];
+
+      const { data: existingScore } = await supabase
+        .from('user_scores')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('period_start', periodStart)
+        .maybeSingle();
+
+      if (existingScore) {
+        const newTotal = Math.max(0, (existingScore.total_points || 0) + amount);
+        await supabase
+          .from('user_scores')
+          .update({ total_points: newTotal })
+          .eq('id', existingScore.id);
+      } else {
+        await supabase
+          .from('user_scores')
+          .insert({
+            user_id: userId,
+            period_start: periodStart,
+            total_points: Math.max(0, amount)
+          });
+      }
+
+      toast({
+        title: "Pontuação atualizada",
+        description: `${amount > 0 ? '+' : ''}${amount} pontos`,
+      });
+
+      loadData();
+    } catch (error) {
+      console.error('Error adjusting points:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível ajustar os pontos",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+      setPointsToAdjust("");
+      setSelectedUser(null);
+    }
   };
 
   const maxPoints = collaborators[0]?.points || 100;
@@ -219,9 +281,21 @@ const RankingModule: React.FC = () => {
       {/* Ranking Individual */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            Ranking Individual
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-primary" />
+              Ranking Individual
+            </div>
+            {isManager && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPointsControl(!showPointsControl)}
+              >
+                <Settings2 className="h-4 w-4 mr-1" />
+                Ajustar Pontos
+              </Button>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -294,9 +368,54 @@ const RankingModule: React.FC = () => {
                       </div>
 
                       {/* Pontos */}
-                      <div className="flex-shrink-0 text-right">
-                        <span className="text-2xl font-bold text-primary">{collaborator.points}</span>
-                        <p className="text-xs text-muted-foreground">pontos</p>
+                      <div className="flex-shrink-0 text-right flex items-center gap-2">
+                        {showPointsControl && isManager && (
+                          <div className="flex items-center gap-1">
+                            {selectedUser === collaborator.id ? (
+                              <>
+                                <Input
+                                  type="number"
+                                  placeholder="Pts"
+                                  value={pointsToAdjust}
+                                  onChange={(e) => setPointsToAdjust(e.target.value)}
+                                  className="w-16 h-8 text-xs"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={isUpdating || !pointsToAdjust}
+                                  onClick={() => handleAdjustPoints(collaborator.id, parseInt(pointsToAdjust) || 0)}
+                                  className="h-8 w-8 p-0 text-green-600"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  disabled={isUpdating || !pointsToAdjust}
+                                  onClick={() => handleAdjustPoints(collaborator.id, -(Math.abs(parseInt(pointsToAdjust)) || 0))}
+                                  className="h-8 w-8 p-0 text-red-600"
+                                >
+                                  <MinusCircle className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setSelectedUser(collaborator.id)}
+                                className="h-8 text-xs"
+                              >
+                                <Settings2 className="h-3 w-3 mr-1" />
+                                Editar
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-2xl font-bold text-primary">{collaborator.points}</span>
+                          <p className="text-xs text-muted-foreground">pontos</p>
+                        </div>
                       </div>
                     </div>
                   </div>

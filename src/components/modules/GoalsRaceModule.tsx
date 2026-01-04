@@ -18,7 +18,9 @@ import {
   Clock,
   AlertTriangle,
   Sparkles,
-  Loader2
+  Loader2,
+  Settings2,
+  MinusCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +49,9 @@ export function GoalsRaceModule() {
   const [loading, setLoading] = useState(true);
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [newGoalTarget, setNewGoalTarget] = useState("");
+  const [showRaceControl, setShowRaceControl] = useState(false);
+  const [racePointsToAdjust, setRacePointsToAdjust] = useState<string>("");
+  const [isUpdatingRace, setIsUpdatingRace] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -119,6 +124,54 @@ export function GoalsRaceModule() {
       title: "Meta atualizada!",
       description: `Nova meta definida: ${newTarget} casas`,
     });
+  };
+
+  const handleAdjustRacePosition = async (amount: number) => {
+    if (!config) {
+      toast({
+        title: "Erro",
+        description: "Nenhuma corrida da meta ativa",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdatingRace(true);
+    try {
+      const newPosition = Math.max(0, config.current_position + amount);
+
+      await supabase
+        .from('goals_race_config')
+        .update({ current_position: newPosition })
+        .eq('id', config.id);
+
+      await supabase
+        .from('goals_race_events')
+        .insert({
+          race_id: config.id,
+          event_type: amount > 0 ? 'checklist_sent' : 'delay',
+          points: amount,
+          description: `Ajuste manual: ${amount > 0 ? '+' : ''}${amount} casas`
+        });
+
+      toast({
+        title: "Corrida atualizada",
+        description: `${amount > 0 ? '+' : ''}${amount} casas`,
+      });
+
+      setConfig({ ...config, current_position: newPosition });
+      loadData();
+    } catch (error) {
+      console.error('Error adjusting race:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível ajustar a corrida",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingRace(false);
+      setRacePointsToAdjust("");
+    }
   };
 
   // Generate house indicators
@@ -249,16 +302,73 @@ export function GoalsRaceModule() {
           </p>
         </div>
         {isManager && (
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={() => setIsConfiguring(!isConfiguring)}
-          >
-            <Settings className="h-4 w-4" />
-            Configurar Meta
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setShowRaceControl(!showRaceControl)}
+            >
+              <Settings2 className="h-4 w-4" />
+              Ajustar Casas
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setIsConfiguring(!isConfiguring)}
+            >
+              <Settings className="h-4 w-4" />
+              Configurar Meta
+            </Button>
+          </div>
         )}
       </div>
+
+      {/* Race Position Control Panel */}
+      {showRaceControl && isManager && (
+        <Card variant="glass" className="animate-fade-in border-2 border-dashed border-primary/50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-primary" />
+              Ajustar Posição na Corrida
+            </CardTitle>
+            <CardDescription>Adicione ou remova casas manualmente</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-4">
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="raceAdjust">Número de casas</Label>
+                <Input
+                  id="raceAdjust"
+                  type="number"
+                  placeholder="Ex: 5"
+                  value={racePointsToAdjust}
+                  onChange={(e) => setRacePointsToAdjust(e.target.value)}
+                />
+              </div>
+              <Button
+                disabled={isUpdatingRace || !racePointsToAdjust}
+                onClick={() => handleAdjustRacePosition(parseInt(racePointsToAdjust) || 0)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Avançar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={isUpdatingRace || !racePointsToAdjust}
+                onClick={() => handleAdjustRacePosition(-(Math.abs(parseInt(racePointsToAdjust)) || 0))}
+              >
+                <MinusCircle className="h-4 w-4 mr-1" />
+                Recuar
+              </Button>
+              <Button variant="ghost" onClick={() => setShowRaceControl(false)}>Fechar</Button>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Posição atual: <strong>{config?.current_position || 0}</strong> casas
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Configuration Panel */}
       {isConfiguring && (
