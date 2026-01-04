@@ -5,6 +5,10 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 import { 
   User, 
   ClipboardCheck, 
@@ -21,7 +25,10 @@ import {
   XCircle,
   History,
   Award,
-  Crown
+  Crown,
+  Plus,
+  MinusCircle,
+  Settings2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -73,6 +80,11 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showPointsControl, setShowPointsControl] = useState(false);
+  const [rankingPoints, setRankingPoints] = useState<string>("");
+  const [racePoints, setRacePoints] = useState<string>("");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [raceConfig, setRaceConfig] = useState<{ id: string; current_position: number } | null>(null);
 
   const targetId = collaboratorId || user?.id;
 
@@ -212,10 +224,122 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
 
       setHistory(historyItems);
 
+      // Load race config for manager controls
+      const { data: raceData } = await supabase
+        .from('goals_race_config')
+        .select('id, current_position')
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (raceData) {
+        setRaceConfig(raceData);
+      }
+
     } catch (error) {
       console.error('Error loading collaborator data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAdjustRankingPoints = async (amount: number) => {
+    if (!targetId) return;
+    
+    setIsUpdating(true);
+    try {
+      const currentPeriod = new Date();
+      currentPeriod.setDate(1);
+      const periodStart = currentPeriod.toISOString().split('T')[0];
+
+      // Check if user has a score record
+      const { data: existingScore } = await supabase
+        .from('user_scores')
+        .select('*')
+        .eq('user_id', targetId)
+        .eq('period_start', periodStart)
+        .maybeSingle();
+
+      if (existingScore) {
+        const newTotal = Math.max(0, (existingScore.total_points || 0) + amount);
+        await supabase
+          .from('user_scores')
+          .update({ total_points: newTotal })
+          .eq('id', existingScore.id);
+      } else {
+        await supabase
+          .from('user_scores')
+          .insert({
+            user_id: targetId,
+            period_start: periodStart,
+            total_points: Math.max(0, amount)
+          });
+      }
+
+      toast({
+        title: "Pontuação atualizada",
+        description: `${amount > 0 ? '+' : ''}${amount} pontos no ranking`,
+      });
+
+      loadCollaboratorData();
+    } catch (error) {
+      console.error('Error adjusting ranking points:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível ajustar os pontos",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+      setRankingPoints("");
+    }
+  };
+
+  const handleAdjustRacePoints = async (amount: number) => {
+    if (!raceConfig) {
+      toast({
+        title: "Erro",
+        description: "Nenhuma corrida da meta ativa",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const newPosition = Math.max(0, raceConfig.current_position + amount);
+
+      await supabase
+        .from('goals_race_config')
+        .update({ current_position: newPosition })
+        .eq('id', raceConfig.id);
+
+      // Register event
+      await supabase
+        .from('goals_race_events')
+        .insert({
+          race_id: raceConfig.id,
+          event_type: amount > 0 ? 'checklist_sent' : 'delay',
+          points: amount,
+          description: `Ajuste manual: ${amount > 0 ? '+' : ''}${amount} casas`,
+          related_user_id: targetId
+        });
+
+      toast({
+        title: "Corrida da Meta atualizada",
+        description: `${amount > 0 ? '+' : ''}${amount} casas na corrida`,
+      });
+
+      setRaceConfig({ ...raceConfig, current_position: newPosition });
+    } catch (error) {
+      console.error('Error adjusting race points:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível ajustar a corrida",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+      setRacePoints("");
     }
   };
 
@@ -348,12 +472,107 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
         {/* Performance */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-primary" />
-              Performance
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Trophy className="h-5 w-5 text-primary" />
+                Performance
+              </div>
+              {userRole === 'gestora' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPointsControl(!showPointsControl)}
+                >
+                  <Settings2 className="h-4 w-4 mr-1" />
+                  Ajustar Pontos
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Manager Points Control Panel */}
+            {showPointsControl && userRole === 'gestora' && (
+              <div className="p-4 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 space-y-4">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <Settings2 className="h-4 w-4" />
+                  Controle Manual de Pontuação
+                </div>
+
+                {/* Ranking Points Control */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Pontos no Ranking Individual</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Ex: 10 ou -5"
+                      value={rankingPoints}
+                      onChange={(e) => setRankingPoints(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isUpdating || !rankingPoints}
+                      onClick={() => handleAdjustRankingPoints(parseInt(rankingPoints) || 0)}
+                      className="bg-green-500/10 hover:bg-green-500/20 text-green-600 border-green-500/30"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Adicionar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isUpdating || !rankingPoints}
+                      onClick={() => handleAdjustRankingPoints(-(Math.abs(parseInt(rankingPoints)) || 0))}
+                      className="bg-red-500/10 hover:bg-red-500/20 text-red-600 border-red-500/30"
+                    >
+                      <MinusCircle className="h-4 w-4 mr-1" />
+                      Remover
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Race Points Control */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Casas na Corrida da Meta (Equipe)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      placeholder="Ex: 3 ou -2"
+                      value={racePoints}
+                      onChange={(e) => setRacePoints(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isUpdating || !racePoints}
+                      onClick={() => handleAdjustRacePoints(parseInt(racePoints) || 0)}
+                      className="bg-green-500/10 hover:bg-green-500/20 text-green-600 border-green-500/30"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Avançar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isUpdating || !racePoints}
+                      onClick={() => handleAdjustRacePoints(-(Math.abs(parseInt(racePoints)) || 0))}
+                      className="bg-red-500/10 hover:bg-red-500/20 text-red-600 border-red-500/30"
+                    >
+                      <MinusCircle className="h-4 w-4 mr-1" />
+                      Recuar
+                    </Button>
+                  </div>
+                  {raceConfig && (
+                    <p className="text-xs text-muted-foreground">
+                      Posição atual da equipe: {raceConfig.current_position} casas
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between p-4 rounded-lg bg-primary/10">
               <div>
                 <div className="text-sm text-muted-foreground">Pontuação Atual</div>
