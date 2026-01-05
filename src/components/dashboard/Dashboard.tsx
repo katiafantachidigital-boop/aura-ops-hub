@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
 import { DollarSign, Calendar, Users, TrendingUp } from "lucide-react";
 import { StatCard } from "./StatCard";
 import { TeamPerformance } from "./TeamPerformance";
 import { RecentActivity } from "./RecentActivity";
 import { QuickActions } from "./QuickActions";
 import { GoalsProgress } from "./GoalsProgress";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const stats = [
   {
@@ -40,7 +43,33 @@ const stats = [
   },
 ];
 
-export function Dashboard() {
+interface DashboardProps {
+  onNavigate?: (module: string) => void;
+}
+
+export function Dashboard({ onNavigate }: DashboardProps) {
+  const { user } = useAuth();
+  const [isWeeklySupervisor, setIsWeeklySupervisor] = useState(false);
+
+  useEffect(() => {
+    const checkWeeklySupervisor = async () => {
+      if (!user) return;
+
+      const today = new Date().toISOString().split("T")[0];
+      const { data } = await supabase
+        .from("weekly_supervisors")
+        .select("id")
+        .eq("user_id", user.id)
+        .lte("week_start", today)
+        .gte("week_end", today)
+        .maybeSingle();
+
+      setIsWeeklySupervisor(!!data);
+    };
+
+    checkWeeklySupervisor();
+  }, [user]);
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
@@ -59,7 +88,7 @@ export function Dashboard() {
 
         {/* Right Column - Quick Actions & Goals */}
         <div className="space-y-6">
-          <QuickActions />
+          <QuickActions onNavigate={onNavigate} isWeeklySupervisor={isWeeklySupervisor} />
           <GoalsProgress />
         </div>
       </div>
