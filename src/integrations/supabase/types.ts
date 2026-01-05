@@ -46,6 +46,86 @@ export type Database = {
           },
         ]
       }
+      client_reports: {
+        Row: {
+          client_id: string
+          commission_notes: string | null
+          created_at: string
+          created_by: string
+          created_by_name: string
+          id: string
+          report_content: string
+          sale_details: string | null
+        }
+        Insert: {
+          client_id: string
+          commission_notes?: string | null
+          created_at?: string
+          created_by: string
+          created_by_name: string
+          id?: string
+          report_content: string
+          sale_details?: string | null
+        }
+        Update: {
+          client_id?: string
+          commission_notes?: string | null
+          created_at?: string
+          created_by?: string
+          created_by_name?: string
+          id?: string
+          report_content?: string
+          sale_details?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          registered_by: string
+          registered_by_name: string
+          sale_participants: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          registered_by: string
+          registered_by_name: string
+          sale_participants?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          registered_by?: string
+          registered_by_name?: string
+          sale_participants?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_checklists: {
         Row: {
           behavior_clear_communication: boolean | null
