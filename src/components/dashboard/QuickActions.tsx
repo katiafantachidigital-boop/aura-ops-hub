@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, UserPlus, FileText, Send } from "lucide-react";
+import { UserPlus, FileText, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientRegistrationDialog } from "./ClientRegistrationDialog";
 import { ClientReportDialog } from "./ClientReportDialog";
-import { toast } from "sonner";
 
 export function QuickActions() {
+  const navigate = useNavigate();
   const { user, isManager } = useAuth();
   const [isWeeklySupervisor, setIsWeeklySupervisor] = useState(false);
   const [clientDialogOpen, setClientDialogOpen] = useState(false);
@@ -38,34 +39,22 @@ export function QuickActions() {
 
   const canAccessClientFeatures = isManager || isWeeklySupervisor;
 
-  const handleNewAppointment = () => {
-    toast.info("Funcionalidade de agendamento em desenvolvimento");
-  };
-
-  const handleSendFeedback = () => {
-    toast.info("Funcionalidade de feedback em desenvolvimento");
+  const handleOpenFeedback = () => {
+    navigate("/feedback");
   };
 
   const actions = [
     {
-      id: "new-appointment",
-      label: "Novo Agendamento",
-      icon: Plus,
-      variant: "default" as const,
-      onClick: handleNewAppointment,
-      visible: true,
-    },
-    {
       id: "new-client",
       label: "Cadastrar Cliente",
       icon: UserPlus,
-      variant: "outline" as const,
+      variant: "default" as const,
       onClick: () => setClientDialogOpen(true),
       visible: canAccessClientFeatures,
     },
     {
       id: "report",
-      label: "Gerar Relatório",
+      label: "Relatório de Cliente",
       icon: FileText,
       variant: "outline" as const,
       onClick: () => setReportDialogOpen(true),
@@ -73,11 +62,11 @@ export function QuickActions() {
     },
     {
       id: "feedback",
-      label: "Enviar Feedback",
-      icon: Send,
+      label: "Feedback do Cliente",
+      icon: MessageSquare,
       variant: "outline" as const,
-      onClick: handleSendFeedback,
-      visible: true,
+      onClick: handleOpenFeedback,
+      visible: canAccessClientFeatures,
     },
   ];
 

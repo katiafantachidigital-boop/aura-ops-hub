@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, UserPlus, History, Phone, Mail, Users } from "lucide-react";
+import { Loader2, UserPlus, History, Phone, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -41,7 +40,6 @@ export function ClientRegistrationDialog({ open, onOpenChange }: ClientRegistrat
   const [activeTab, setActiveTab] = useState("register");
   const [loading, setLoading] = useState(false);
   const [loadingClients, setLoadingClients] = useState(false);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   
   // Form state
@@ -49,24 +47,12 @@ export function ClientRegistrationDialog({ open, onOpenChange }: ClientRegistrat
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
-  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
-      loadProfiles();
       loadClients();
     }
   }, [open]);
-
-  const loadProfiles = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .eq('profile_completed', true)
-      .order('full_name');
-    
-    setProfiles(data || []);
-  };
 
   const loadClients = async () => {
     setLoadingClients(true);
@@ -99,7 +85,6 @@ export function ClientRegistrationDialog({ open, onOpenChange }: ClientRegistrat
       email: email.trim() || null,
       phone: phone.trim() || null,
       notes: notes.trim() || null,
-      sale_participants: selectedParticipants.length > 0 ? selectedParticipants : null,
       registered_by: user.id,
       registered_by_name: profile.full_name || user.email || "Usuário"
     });
@@ -123,15 +108,6 @@ export function ClientRegistrationDialog({ open, onOpenChange }: ClientRegistrat
     setEmail("");
     setPhone("");
     setNotes("");
-    setSelectedParticipants([]);
-  };
-
-  const toggleParticipant = (participantName: string) => {
-    setSelectedParticipants(prev => 
-      prev.includes(participantName)
-        ? prev.filter(p => p !== participantName)
-        : [...prev, participantName]
-    );
   };
 
   return (
@@ -201,39 +177,6 @@ export function ClientRegistrationDialog({ open, onOpenChange }: ClientRegistrat
                   placeholder="Anotações sobre o cliente..."
                   rows={2}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1">
-                  <Users className="h-3 w-3" /> Participantes da Venda (Comissão)
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Selecione quem participou do fechamento desta venda
-                </p>
-                <ScrollArea className="h-32 border rounded-md p-2">
-                  <div className="space-y-2">
-                    {profiles.map((p) => (
-                      <div key={p.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`participant-${p.id}`}
-                          checked={selectedParticipants.includes(p.full_name || "")}
-                          onCheckedChange={() => toggleParticipant(p.full_name || "")}
-                        />
-                        <label
-                          htmlFor={`participant-${p.id}`}
-                          className="text-sm cursor-pointer"
-                        >
-                          {p.full_name || "Sem nome"}
-                        </label>
-                      </div>
-                    ))}
-                    {profiles.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        Nenhum colaborador cadastrado
-                      </p>
-                    )}
-                  </div>
-                </ScrollArea>
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
