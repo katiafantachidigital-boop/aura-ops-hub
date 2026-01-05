@@ -13,8 +13,6 @@ import { CollaboratorProfile } from "@/components/modules/CollaboratorProfile";
 import { ProfileOnboarding } from "@/components/modules/ProfileOnboarding";
 import { TrainingModule } from "@/components/modules/TrainingModule";
 import { SupervisorManagement } from "@/components/modules/SupervisorManagement";
-import { ClientRegistration } from "@/components/modules/ClientRegistration";
-import { ClientReports } from "@/components/modules/ClientReports";
 
 const ChecklistHistoryModule = () => (
   <div className="text-center py-12">
@@ -34,8 +32,6 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
   profile: { title: "Meu Perfil", subtitle: "Seu perfil profissional" },
-  "client-registration": { title: "Cadastro de Clientes", subtitle: "Registre novos clientes" },
-  "client-reports": { title: "Relatórios de Clientes", subtitle: "Crie e visualize relatórios" },
 };
 
 const Index = () => {
@@ -61,15 +57,11 @@ const Index = () => {
     setActiveItem(id);
   };
 
-  const handleQuickActionNavigate = (module: string) => {
-    setActiveItem(module);
-  };
-
   const renderContent = () => {
     switch (activeItem) {
       case "dashboard":
         // Non-managers only see ranking, goals-race and training
-        return isManager ? <Dashboard onNavigate={handleQuickActionNavigate} /> : <RankingModule />;
+        return isManager ? <Dashboard /> : <RankingModule />;
       case "checklist":
         return <RoutineManagement />;
       case "goals-race":
@@ -88,12 +80,8 @@ const Index = () => {
         return isManager ? <SettingsModule /> : <RankingModule />;
       case "profile":
         return <CollaboratorProfile />;
-      case "client-registration":
-        return <ClientRegistration />;
-      case "client-reports":
-        return <ClientReports />;
       default:
-        return isManager ? <Dashboard onNavigate={handleQuickActionNavigate} /> : <RankingModule />;
+        return isManager ? <Dashboard /> : <RankingModule />;
     }
   };
 
