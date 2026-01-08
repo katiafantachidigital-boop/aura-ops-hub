@@ -6,32 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const PROCEDURES = [
-  "Limpeza de Pele",
-  "Peeling",
-  "Microagulhamento",
-  "Botox",
-  "Preenchimento",
-  "Depilação a Laser",
-  "Tratamento Capilar",
-  "Massagem",
-  "Drenagem Linfática",
-  "Outro"
-];
-
-const PROFESSIONALS = [
-  "Dra. Ana Paula",
-  "Dra. Carolina",
-  "Dr. Ricardo",
-  "Dra. Fernanda",
-  "Terapeuta Juliana",
-  "Terapeuta Marcos",
-  "Outro"
-];
 
 interface Client {
   id: string;
@@ -301,30 +277,22 @@ export default function ClientFeedback() {
 
               <div>
                 <Label className="text-sm font-medium">2. Procedimento realizado:</Label>
-                <Select value={procedureType} onValueChange={setProcedureType}>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Selecione o procedimento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROCEDURES.map((proc) => (
-                      <SelectItem key={proc} value={proc}>{proc}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  value={procedureType}
+                  onChange={(e) => setProcedureType(e.target.value)}
+                  placeholder="Digite o procedimento realizado"
+                  className="mt-2"
+                />
               </div>
 
               <div>
                 <Label className="text-sm font-medium">3. Profissional que realizou o atendimento:</Label>
-                <Select value={professionalName} onValueChange={setProfessionalName}>
-                  <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Selecione o profissional" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROFESSIONALS.map((prof) => (
-                      <SelectItem key={prof} value={prof}>{prof}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  value={professionalName}
+                  onChange={(e) => setProfessionalName(e.target.value)}
+                  placeholder="Digite o nome do profissional"
+                  className="mt-2"
+                />
               </div>
             </div>
           </CardContent>

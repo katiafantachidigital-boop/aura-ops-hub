@@ -13,6 +13,7 @@ import { CollaboratorProfile } from "@/components/modules/CollaboratorProfile";
 import { ProfileOnboarding } from "@/components/modules/ProfileOnboarding";
 import { TrainingModule } from "@/components/modules/TrainingModule";
 import { SupervisorManagement } from "@/components/modules/SupervisorManagement";
+import { FeedbackHistoryModule } from "@/components/modules/FeedbackHistoryModule";
 
 const ChecklistHistoryModule = () => (
   <div className="text-center py-12">
@@ -30,6 +31,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
   supervisor: { title: "Supervisor da Semana", subtitle: "Gestão da supervisão semanal" },
   "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
+  "feedback-history": { title: "Histórico de Avaliações", subtitle: "Avaliações dos clientes" },
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
   profile: { title: "Meu Perfil", subtitle: "Seu perfil profissional" },
 };
@@ -76,6 +78,8 @@ const Index = () => {
         return isManager ? <SupervisorManagement /> : <RankingModule />;
       case "checklist-history":
         return isManager ? <ChecklistHistoryModule /> : <RankingModule />;
+      case "feedback-history":
+        return isManager ? <FeedbackHistoryModule /> : <RankingModule />;
       case "settings":
         return isManager ? <SettingsModule /> : <RankingModule />;
       case "profile":
