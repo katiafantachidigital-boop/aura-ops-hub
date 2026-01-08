@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Star, Send, CheckCircle, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Star, Send, CheckCircle, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,9 +33,21 @@ const PROFESSIONALS = [
   "Outro"
 ];
 
+interface Client {
+  id: string;
+  name: string;
+  phone: string | null;
+  created_at: string;
+}
+
 export default function ClientFeedback() {
+  const [step, setStep] = useState<'select' | 'survey' | 'success'>('select');
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loadingClients, setLoadingClients] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
   // Identificação
   const [unit, setUnit] = useState("");
@@ -63,6 +75,38 @@ export default function ClientFeedback() {
 
   // Comentário
   const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = async () => {
+    setLoadingClients(true);
+    // Busca clientes cadastrados hoje
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, name, phone, created_at')
+      .gte('created_at', today)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching clients:", error);
+      toast.error("Erro ao carregar clientes");
+    } else {
+      setClients(data || []);
+    }
+    setLoadingClients(false);
+  };
+
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleSelectClient = (client: Client) => {
+    setSelectedClient(client);
+    setStep('survey');
+  };
 
   const handleSubmit = async () => {
     if (overallRating === 0) {
@@ -97,11 +141,34 @@ export default function ClientFeedback() {
       return;
     }
 
-    setSubmitted(true);
+    setStep('success');
     toast.success("Obrigada pela sua avaliação!");
   };
 
-  if (submitted) {
+  const handleNewFeedback = () => {
+    setStep('select');
+    setSelectedClient(null);
+    setSearchQuery("");
+    // Reset form
+    setUnit("");
+    setProcedureType("");
+    setProfessionalName("");
+    setReceptionRating("");
+    setFeltWelcomed("");
+    setEnvironmentClean("");
+    setProfessionalPolite("");
+    setProcedureExplained("");
+    setFeltComfortable("");
+    setOverallRating(0);
+    setMetExpectations("");
+    setWouldRecommend("");
+    setWouldReturn("");
+    setComment("");
+    fetchClients();
+  };
+
+  // Tela de sucesso
+  if (step === 'success') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 flex items-center justify-center p-4">
         <Card className="w-full max-w-md text-center">
@@ -111,21 +178,85 @@ export default function ClientFeedback() {
             <p className="text-muted-foreground mb-6">
               Sua avaliação foi enviada com sucesso. Agradecemos muito por compartilhar sua experiência conosco!
             </p>
-            <a 
-              href="https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-primary hover:underline"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Avalie-nos também no Google!
-            </a>
+            <Button onClick={handleNewFeedback} variant="outline">
+              Nova Avaliação
+            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // Tela de seleção de cliente
+  if (step === 'select') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-8 px-4">
+        <div className="max-w-2xl mx-auto space-y-6">
+          {/* Header */}
+          <Card>
+            <CardContent className="pt-6 pb-6 text-center">
+              <h1 className="text-2xl font-bold mb-1">ATENDIMENTO E EXPERIÊNCIA DO CLIENTE</h1>
+              <p className="text-lg font-medium text-primary">IPFP – Instituto Paranaense</p>
+              <p className="text-sm text-muted-foreground mt-2">Selecione seu nome para iniciar a avaliação</p>
+            </CardContent>
+          </Card>
+
+          {/* Busca */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Lista de Clientes */}
+          <Card>
+            <CardContent className="pt-6">
+              {loadingClients ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Carregando clientes...
+                </div>
+              ) : filteredClients.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  {searchQuery ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado hoje"}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredClients.map((client) => (
+                    <button
+                      key={client.id}
+                      onClick={() => handleSelectClient(client)}
+                      className="w-full flex items-center gap-4 p-4 rounded-lg border hover:bg-accent hover:border-primary transition-colors text-left"
+                    >
+                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <User className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{client.name}</p>
+                        {client.phone && (
+                          <p className="text-sm text-muted-foreground">{client.phone}</p>
+                        )}
+                      </div>
+                      <span className="text-primary text-sm font-medium">Selecionar →</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Tela do questionário
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
@@ -135,6 +266,12 @@ export default function ClientFeedback() {
             <h1 className="text-2xl font-bold mb-1">ATENDIMENTO E EXPERIÊNCIA DO CLIENTE</h1>
             <p className="text-lg font-medium text-primary">IPFP – Instituto Paranaense</p>
             <p className="text-sm text-muted-foreground mt-2">⏱ Tempo de resposta: menos de 2 minutos</p>
+            {selectedClient && (
+              <div className="mt-4 p-3 bg-primary/10 rounded-lg">
+                <p className="text-sm text-muted-foreground">Avaliação de:</p>
+                <p className="font-semibold text-primary">{selectedClient.name}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -419,26 +556,6 @@ export default function ClientFeedback() {
               rows={4}
               className="mt-2 resize-none"
             />
-          </CardContent>
-        </Card>
-
-        {/* Avaliação Google */}
-        <Card className="border-primary/50 bg-primary/5">
-          <CardContent className="pt-6 text-center">
-            <h2 className="text-lg font-semibold mb-2">⭐ AVALIAÇÃO PÚBLICA (ESTRATÉGICO)</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              15. Você poderia nos avaliar no Google? Sua opinião é muito importante para nós.
-            </p>
-            <a 
-              href="https://g.page/r/YOUR_GOOGLE_REVIEW_LINK/review" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <Button variant="outline" className="gap-2">
-                <ExternalLink className="h-4 w-4" />
-                Avaliar no Google
-              </Button>
-            </a>
           </CardContent>
         </Card>
 
