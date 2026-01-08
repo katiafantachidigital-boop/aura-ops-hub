@@ -36,8 +36,11 @@ import {
   BookOpen,
   Clock,
   Award,
+  HelpCircle,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
+import { TrainingQuiz, QuizAnswersViewer } from "./TrainingQuiz";
 
 interface Training {
   id: string;
@@ -97,6 +100,10 @@ export function TrainingModule() {
   const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
   const [showModuleDialog, setShowModuleDialog] = useState(false);
   const [showContentDialog, setShowContentDialog] = useState(false);
+  const [showQuizDialog, setShowQuizDialog] = useState(false);
+  const [quizContent, setQuizContent] = useState<{ id: string; title: string; trainingId: string } | null>(null);
+  const [showAnswersDialog, setShowAnswersDialog] = useState(false);
+  const [answersContent, setAnswersContent] = useState<{ id: string; title: string } | null>(null);
   const [selectedModule, setSelectedModule] = useState<TrainingModule | null>(null);
 
   // Form states
@@ -497,7 +504,7 @@ export function TrainingModule() {
     }
   };
 
-  const handleCompleteContent = async (contentId: string, trainingId: string) => {
+  const handleStartComplete = (contentId: string, trainingId: string, contentTitle: string) => {
     if (!user) return;
 
     // Check if already completed
@@ -506,12 +513,20 @@ export function TrainingModule() {
       return;
     }
 
+    // Open quiz dialog
+    setQuizContent({ id: contentId, title: contentTitle, trainingId });
+    setShowQuizDialog(true);
+  };
+
+  const handleCompleteAfterQuiz = async () => {
+    if (!user || !quizContent) return;
+
     const { error } = await supabase
       .from("training_progress")
       .insert([{
         user_id: user.id,
-        training_id: trainingId,
-        content_id: contentId,
+        training_id: quizContent.trainingId,
+        content_id: quizContent.id,
         completed_at: new Date().toISOString(),
       }]);
 
@@ -522,7 +537,12 @@ export function TrainingModule() {
     }
 
     toast.success("Conteúdo concluído! Pontos adicionados ao seu perfil.");
-    setUserProgress(prev => [...prev, { content_id: contentId, completed_at: new Date().toISOString() }]);
+    setUserProgress(prev => [...prev, { content_id: quizContent.id, completed_at: new Date().toISOString() }]);
+  };
+
+  const handleViewAnswers = (contentId: string, contentTitle: string) => {
+    setAnswersContent({ id: contentId, title: contentTitle });
+    setShowAnswersDialog(true);
   };
 
   const getTrainingProgress = (trainingId: string) => {
@@ -878,10 +898,20 @@ export function TrainingModule() {
                                           <Play className="h-4 w-4" />
                                         </Button>
                                       )}
+                                      {isManager && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleViewAnswers(content.id, content.title)}
+                                          title="Ver respostas"
+                                        >
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                      )}
                                       {!isCompleted && (
                                         <Button
                                           size="sm"
-                                          onClick={() => handleCompleteContent(content.id, training.id)}
+                                          onClick={() => handleStartComplete(content.id, training.id, content.title)}
                                         >
                                           Concluir
                                         </Button>
@@ -1101,6 +1131,44 @@ export function TrainingModule() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quiz Dialog */}
+      <Dialog open={showQuizDialog} onOpenChange={setShowQuizDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Questionário: {quizContent?.title}</DialogTitle>
+          </DialogHeader>
+          {quizContent && user && (
+            <TrainingQuiz
+              contentId={quizContent.id}
+              contentTitle={quizContent.title}
+              trainingId={quizContent.trainingId}
+              userId={user.id}
+              isManager={isManager}
+              onComplete={handleCompleteAfterQuiz}
+              onClose={() => {
+                setShowQuizDialog(false);
+                setQuizContent(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Answers Dialog (Manager Only) */}
+      <Dialog open={showAnswersDialog} onOpenChange={setShowAnswersDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Respostas: {answersContent?.title}</DialogTitle>
+          </DialogHeader>
+          {answersContent && (
+            <QuizAnswersViewer
+              contentId={answersContent.id}
+              contentTitle={answersContent.title}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
