@@ -48,6 +48,7 @@ export type Database = {
       }
       client_feedbacks: {
         Row: {
+          client_id: string | null
           comment: string | null
           created_at: string
           environment_clean: string | null
@@ -66,6 +67,7 @@ export type Database = {
           would_return: string | null
         }
         Insert: {
+          client_id?: string | null
           comment?: string | null
           created_at?: string
           environment_clean?: string | null
@@ -84,6 +86,7 @@ export type Database = {
           would_return?: string | null
         }
         Update: {
+          client_id?: string | null
           comment?: string | null
           created_at?: string
           environment_clean?: string | null
@@ -101,7 +104,15 @@ export type Database = {
           would_recommend?: string | null
           would_return?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "client_feedbacks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_reports: {
         Row: {
