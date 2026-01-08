@@ -571,6 +571,115 @@ export type Database = {
           },
         ]
       }
+      training_question_options: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          option_text: string
+          order_index: number
+          question_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_text: string
+          order_index?: number
+          question_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          option_text?: string
+          order_index?: number
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_question_options_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "training_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_questions: {
+        Row: {
+          content_id: string
+          created_at: string
+          id: string
+          order_index: number
+          question_text: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          question_text: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_questions_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "training_contents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      training_user_answers: {
+        Row: {
+          answered_at: string
+          id: string
+          is_correct: boolean
+          question_id: string
+          selected_option_id: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string
+          id?: string
+          is_correct: boolean
+          question_id: string
+          selected_option_id: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string
+          id?: string
+          is_correct?: boolean
+          question_id?: string
+          selected_option_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_user_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "training_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_user_answers_selected_option_id_fkey"
+            columns: ["selected_option_id"]
+            isOneToOne: false
+            referencedRelation: "training_question_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainings: {
         Row: {
           cover_image_url: string | null
