@@ -250,6 +250,56 @@ export function TrainingModule() {
     });
   };
 
+  const handleDeleteTraining = async (trainingId: string) => {
+    const confirmed = window.confirm("Tem certeza que deseja excluir este treinamento? Esta ação não pode ser desfeita.");
+    if (!confirmed) return;
+
+    // First delete all related contents, modules, and progress
+    const trainingModules = modules[trainingId] || [];
+    
+    for (const module of trainingModules) {
+      // Delete contents of this module
+      await supabase
+        .from("training_contents")
+        .delete()
+        .eq("module_id", module.id);
+    }
+
+    // Delete modules
+    await supabase
+      .from("training_modules")
+      .delete()
+      .eq("training_id", trainingId);
+
+    // Delete progress
+    await supabase
+      .from("training_progress")
+      .delete()
+      .eq("training_id", trainingId);
+
+    // Delete the training
+    const { error } = await supabase
+      .from("trainings")
+      .delete()
+      .eq("id", trainingId);
+
+    if (error) {
+      toast.error("Erro ao excluir treinamento");
+      console.error(error);
+      return;
+    }
+
+    toast.success("Treinamento excluído!");
+    setTrainings(prev => prev.filter(t => t.id !== trainingId));
+    
+    // Clean up local state
+    setModules(prev => {
+      const newModules = { ...prev };
+      delete newModules[trainingId];
+      return newModules;
+    });
+  };
+
   const handleCreateModule = async () => {
     if (!selectedTraining || !newModule.title) {
       toast.error("Título é obrigatório");
@@ -729,6 +779,19 @@ export function TrainingModule() {
                         <Award className="h-4 w-4" />
                         {training.points_reward} pts
                       </div>
+                      {isManager && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteTraining(training.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   {training.target_audience.length > 0 && (
