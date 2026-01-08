@@ -117,6 +117,7 @@ export default function ClientFeedback() {
     setLoading(true);
 
     const { error } = await supabase.from('client_feedbacks').insert({
+      client_id: selectedClient?.id || null,
       unit: unit || null,
       procedure_type: procedureType || null,
       professional_name: professionalName || null,
