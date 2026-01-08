@@ -50,20 +50,56 @@ export type Database = {
         Row: {
           comment: string | null
           created_at: string
+          environment_clean: string | null
+          felt_comfortable: string | null
+          felt_welcomed: string | null
           id: string
-          rating: number
+          met_expectations: string | null
+          overall_rating: number | null
+          procedure_explained: string | null
+          procedure_type: string | null
+          professional_name: string | null
+          professional_polite: string | null
+          reception_rating: string | null
+          unit: string | null
+          would_recommend: string | null
+          would_return: string | null
         }
         Insert: {
           comment?: string | null
           created_at?: string
+          environment_clean?: string | null
+          felt_comfortable?: string | null
+          felt_welcomed?: string | null
           id?: string
-          rating: number
+          met_expectations?: string | null
+          overall_rating?: number | null
+          procedure_explained?: string | null
+          procedure_type?: string | null
+          professional_name?: string | null
+          professional_polite?: string | null
+          reception_rating?: string | null
+          unit?: string | null
+          would_recommend?: string | null
+          would_return?: string | null
         }
         Update: {
           comment?: string | null
           created_at?: string
+          environment_clean?: string | null
+          felt_comfortable?: string | null
+          felt_welcomed?: string | null
           id?: string
-          rating?: number
+          met_expectations?: string | null
+          overall_rating?: number | null
+          procedure_explained?: string | null
+          procedure_type?: string | null
+          professional_name?: string | null
+          professional_polite?: string | null
+          reception_rating?: string | null
+          unit?: string | null
+          would_recommend?: string | null
+          would_return?: string | null
         }
         Relationships: []
       }
