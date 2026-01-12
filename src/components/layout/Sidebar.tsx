@@ -12,11 +12,14 @@ import {
   History,
   X,
   User,
-  Star
+  Star,
+  Megaphone
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useUnreadAnnouncements } from "@/hooks/useUnreadAnnouncements";
+import { Badge } from "@/components/ui/badge";
 
 interface SidebarProps {
   activeItem: string;
@@ -27,6 +30,7 @@ interface SidebarProps {
 
 export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarProps) {
   const { isManager, canSubmitChecklist } = useAuth();
+  const { unreadCount } = useUnreadAnnouncements();
 
   // Build operation items based on permissions
   const operationItems = [
@@ -35,6 +39,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
     { id: "goals-race", label: "Corrida da Meta", icon: Target },
     { id: "ranking", label: "Ranking", icon: Trophy },
     { id: "training", label: "Treinamentos", icon: GraduationCap },
+    { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadCount },
   ];
 
   // Management items only for manager
@@ -143,21 +148,37 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
             {operationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeItem === item.id;
+              const badgeCount = 'badge' in item ? item.badge : 0;
               return (
                 <button
                   key={item.id}
                   onClick={() => handleItemClick(item.id)}
                   title={!isOpen ? item.label : undefined}
                   className={cn(
-                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 relative",
                     isActive
                       ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-glow"
                       : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
                     !isOpen && "lg:justify-center lg:px-2"
                   )}
                 >
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className={cn("transition-opacity", isOpen ? "opacity-100" : "lg:hidden")}>{item.label}</span>
+                  <div className="relative">
+                    <Icon className="h-5 w-5 shrink-0" />
+                    {badgeCount > 0 && !isOpen && (
+                      <Badge 
+                        variant="destructive" 
+                        className="absolute -top-2 -right-2 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold"
+                      >
+                        {badgeCount > 9 ? '9+' : badgeCount}
+                      </Badge>
+                    )}
+                  </div>
+                  <span className={cn("transition-opacity flex-1", isOpen ? "opacity-100" : "lg:hidden")}>{item.label}</span>
+                  {badgeCount > 0 && isOpen && (
+                    <Badge variant="destructive" className="ml-auto">
+                      {badgeCount > 99 ? '99+' : badgeCount}
+                    </Badge>
+                  )}
                 </button>
               );
             })}
