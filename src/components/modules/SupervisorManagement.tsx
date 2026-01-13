@@ -8,7 +8,7 @@ import { Crown, UserCheck, UserMinus, Clock, CheckCircle2, AlertCircle, Loader2 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { format, startOfWeek, endOfWeek, isAfter, setHours, addDays } from "date-fns";
+import { format, startOfWeek, endOfWeek } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Profile {
@@ -38,8 +38,8 @@ interface DailyChecklist {
 export function SupervisorManagement() {
   const { user } = useAuth();
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [currentSupervisor, setCurrentSupervisor] = useState<WeeklySupervisor | null>(null);
-  const [todayChecklist, setTodayChecklist] = useState<DailyChecklist | null>(null);
+  const [currentSupervisors, setCurrentSupervisors] = useState<WeeklySupervisor[]>([]);
+  const [todayChecklists, setTodayChecklists] = useState<DailyChecklist[]>([]);
   const [loading, setLoading] = useState(true);
   const [promoting, setPromoting] = useState<string | null>(null);
 
@@ -63,26 +63,24 @@ export function SupervisorManagement() {
       );
       setProfiles(filteredProfiles);
 
-      // Check current week's supervisor
+      // Check current week's supervisors (multiple)
       const { data: supervisorData, error: supervisorError } = await supabase
         .from("weekly_supervisors")
         .select("*")
         .gte("week_start", format(weekStart, "yyyy-MM-dd"))
-        .lte("week_end", format(weekEnd, "yyyy-MM-dd"))
-        .maybeSingle();
+        .lte("week_end", format(weekEnd, "yyyy-MM-dd"));
 
       if (supervisorError) throw supervisorError;
-      setCurrentSupervisor(supervisorData);
+      setCurrentSupervisors(supervisorData || []);
 
-      // Check today's checklist
+      // Check today's checklists (multiple - one per supervisor)
       const { data: checklistData, error: checklistError } = await supabase
         .from("daily_checklists")
         .select("id, checklist_date, submitted_by, submitted_by_name, created_at, is_perfect")
-        .eq("checklist_date", format(today, "yyyy-MM-dd"))
-        .maybeSingle();
+        .eq("checklist_date", format(today, "yyyy-MM-dd"));
 
       if (checklistError) throw checklistError;
-      setTodayChecklist(checklistData);
+      setTodayChecklists(checklistData || []);
 
     } catch (error) {
       console.error("Error loading data:", error);
@@ -120,23 +118,15 @@ export function SupervisorManagement() {
     setPromoting(profileId);
 
     try {
-      // First, demote any current supervisor
-      if (currentSupervisor) {
-        await supabase
-          .from("profiles")
-          .update({ is_supervisor: false })
-          .eq("id", currentSupervisor.user_id);
-
-        await supabase
-          .from("weekly_supervisors")
-          .delete()
-          .eq("id", currentSupervisor.id);
-
-        // Remove supervisor role from previous supervisor
-        await removeSupervisorRole(currentSupervisor.user_id);
+      // Check if this user is already a supervisor this week
+      const isAlreadySupervisor = currentSupervisors.some(s => s.user_id === profileId);
+      if (isAlreadySupervisor) {
+        toast.error("Este colaborador já é supervisor desta semana");
+        setPromoting(null);
+        return;
       }
 
-      // Create new weekly supervisor record
+      // Create new weekly supervisor record (allowing multiple)
       const { error: insertError } = await supabase
         .from("weekly_supervisors")
         .insert({
@@ -169,25 +159,24 @@ export function SupervisorManagement() {
     }
   };
 
-  const demoteSupervisor = async () => {
-    if (!currentSupervisor) return;
-    setPromoting(currentSupervisor.user_id);
+  const demoteSupervisor = async (supervisorId: string, userId: string) => {
+    setPromoting(userId);
 
     try {
       // Update profile to is_supervisor = false
       await supabase
         .from("profiles")
         .update({ is_supervisor: false })
-        .eq("id", currentSupervisor.user_id);
+        .eq("id", userId);
 
       // Delete weekly supervisor record
       await supabase
         .from("weekly_supervisors")
         .delete()
-        .eq("id", currentSupervisor.id);
+        .eq("id", supervisorId);
 
       // Remove supervisor role
-      await removeSupervisorRole(currentSupervisor.user_id);
+      await removeSupervisorRole(userId);
 
       toast.success("Supervisor removido com sucesso!");
       loadData();
@@ -209,23 +198,21 @@ export function SupervisorManagement() {
       .toUpperCase();
   };
 
-  const getCurrentSupervisorProfile = () => {
-    if (!currentSupervisor) return null;
-    return profiles.find(p => p.id === currentSupervisor.user_id);
+  const getSupervisorProfiles = () => {
+    return currentSupervisors.map(supervisor => ({
+      ...supervisor,
+      profile: profiles.find(p => p.id === supervisor.user_id)
+    }));
   };
 
-  // Check if checklist can be submitted (after 7 AM)
-  const canSubmitChecklist = () => {
-    const now = new Date();
-    const sevenAM = setHours(new Date(), 7);
-    sevenAM.setMinutes(0);
-    sevenAM.setSeconds(0);
-    
-    // If there's no checklist today and it's after 7 AM, can submit
-    if (!todayChecklist && isAfter(now, sevenAM)) {
-      return true;
-    }
-    return false;
+  // Get checklist for a specific supervisor
+  const getChecklistForSupervisor = (userId: string) => {
+    return todayChecklists.find(c => c.submitted_by === userId);
+  };
+
+  // Count how many supervisors submitted today
+  const getSubmittedCount = () => {
+    return todayChecklists.length;
   };
 
   if (loading) {
@@ -236,11 +223,11 @@ export function SupervisorManagement() {
     );
   }
 
-  const supervisorProfile = getCurrentSupervisorProfile();
+  const supervisorProfiles = getSupervisorProfiles();
 
   return (
     <div className="space-y-6">
-      {/* Current Supervisor Card */}
+      {/* Current Supervisors Card */}
       <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -248,61 +235,76 @@ export function SupervisorManagement() {
               <Crown className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <CardTitle>Supervisor da Semana</CardTitle>
+              <CardTitle>Supervisores da Semana</CardTitle>
               <CardDescription>
                 {format(weekStart, "dd/MM", { locale: ptBR })} - {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
+                {currentSupervisors.length > 0 && ` • ${currentSupervisors.length} supervisor${currentSupervisors.length > 1 ? 'es' : ''}`}
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {supervisorProfile ? (
-            <div className="flex items-center justify-between p-4 rounded-xl bg-background border">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-14 w-14 border-2 border-primary">
-                  <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
-                    {getInitials(supervisorProfile.full_name)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold text-lg">{supervisorProfile.full_name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline">{supervisorProfile.role}</Badge>
-                    <Badge variant="secondary">{supervisorProfile.shift}</Badge>
-                    <Badge className="bg-primary/10 text-primary border-primary/20">
-                      <Crown className="h-3 w-3 mr-1" />
-                      Supervisor
-                    </Badge>
+          {supervisorProfiles.length > 0 ? (
+            <div className="space-y-3">
+              {supervisorProfiles.map(({ id, user_id, profile: supervisorProfile }) => {
+                const supervisorChecklist = getChecklistForSupervisor(user_id);
+                return (
+                  <div key={id} className="flex items-center justify-between p-4 rounded-xl bg-background border">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-14 w-14 border-2 border-primary">
+                        <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
+                          {getInitials(supervisorProfile?.full_name || null)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold text-lg">{supervisorProfile?.full_name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline">{supervisorProfile?.role}</Badge>
+                          <Badge variant="secondary">{supervisorProfile?.shift}</Badge>
+                          {supervisorChecklist ? (
+                            <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Checklist enviado
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-amber-600 border-amber-500/20">
+                              <Clock className="h-3 w-3 mr-1" />
+                              Pendente
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => demoteSupervisor(id, user_id)}
+                      disabled={promoting === user_id}
+                    >
+                      {promoting === user_id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <UserMinus className="h-4 w-4 mr-2" />
+                          Despromover
+                        </>
+                      )}
+                    </Button>
                   </div>
-                </div>
-              </div>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={demoteSupervisor}
-                disabled={promoting === currentSupervisor?.user_id}
-              >
-                {promoting === currentSupervisor?.user_id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <>
-                    <UserMinus className="h-4 w-4 mr-2" />
-                    Despromover
-                  </>
-                )}
-              </Button>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-6 text-muted-foreground">
               <AlertCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
               <p>Nenhum supervisor designado esta semana</p>
-              <p className="text-sm">Selecione um colaborador abaixo para promover</p>
+              <p className="text-sm">Selecione colaboradores abaixo para promover</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Today's Checklist Status */}
+      {/* Today's Checklists Status */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
@@ -310,39 +312,55 @@ export function SupervisorManagement() {
               <Clock className="h-5 w-5 text-muted-foreground" />
             </div>
             <div>
-              <CardTitle className="text-lg">Status do Checklist de Hoje</CardTitle>
-              <CardDescription>{format(today, "EEEE, dd 'de' MMMM", { locale: ptBR })}</CardDescription>
+              <CardTitle className="text-lg">Status dos Checklists de Hoje</CardTitle>
+              <CardDescription>
+                {format(today, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                {currentSupervisors.length > 0 && ` • ${getSubmittedCount()}/${currentSupervisors.length} enviados`}
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {todayChecklist ? (
-            <div className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
-              <div className="flex-1">
-                <p className="font-medium text-emerald-700 dark:text-emerald-400">
-                  Checklist enviado com sucesso!
+          {todayChecklists.length > 0 ? (
+            <div className="space-y-3">
+              {todayChecklists.map((checklist) => (
+                <div key={checklist.id} className="flex items-center gap-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                  <div className="flex-1">
+                    <p className="font-medium text-emerald-700 dark:text-emerald-400">
+                      Checklist enviado por {checklist.submitted_by_name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Enviado às {format(new Date(checklist.created_at), "HH:mm")}
+                    </p>
+                  </div>
+                  {checklist.is_perfect && (
+                    <Badge className="bg-emerald-500">Perfeito!</Badge>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : currentSupervisors.length === 0 ? (
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50 border">
+              <AlertCircle className="h-8 w-8 text-muted-foreground" />
+              <div>
+                <p className="font-medium text-muted-foreground">
+                  Nenhum supervisor designado
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Enviado por {todayChecklist.submitted_by_name} às{" "}
-                  {format(new Date(todayChecklist.created_at), "HH:mm")}
+                  Promova colaboradores para enviar o checklist
                 </p>
               </div>
-              {todayChecklist.is_perfect && (
-                <Badge className="bg-emerald-500">Perfeito!</Badge>
-              )}
             </div>
           ) : (
             <div className="flex items-center gap-4 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
               <AlertCircle className="h-8 w-8 text-amber-500" />
               <div>
                 <p className="font-medium text-amber-700 dark:text-amber-400">
-                  Checklist pendente
+                  Checklists pendentes
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {canSubmitChecklist()
-                    ? "Aguardando envio pela supervisora"
-                    : "Disponível a partir das 7h da manhã"}
+                  Aguardando envio pelos supervisores ({currentSupervisors.length} supervisor{currentSupervisors.length > 1 ? 'es' : ''})
                 </p>
               </div>
             </div>
@@ -355,7 +373,7 @@ export function SupervisorManagement() {
         <CardHeader>
           <CardTitle>Colaboradores</CardTitle>
           <CardDescription>
-            Selecione um colaborador para promover a supervisor da semana
+            Selecione colaboradores para promover a supervisor da semana (múltiplos permitidos)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -367,7 +385,7 @@ export function SupervisorManagement() {
                 </p>
               ) : (
                 profiles.map((profile) => {
-                  const isSupervisor = profile.id === currentSupervisor?.user_id;
+                  const isSupervisor = currentSupervisors.some(s => s.user_id === profile.id);
                   
                   return (
                     <div
