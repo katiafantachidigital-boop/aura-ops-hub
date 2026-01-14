@@ -63,12 +63,13 @@ export function SupervisorManagement() {
       );
       setProfiles(filteredProfiles);
 
-      // Check current week's supervisors (multiple)
+      // Check current week's supervisors (multiple) - look for overlapping periods
+      const todayStr = format(today, "yyyy-MM-dd");
       const { data: supervisorData, error: supervisorError } = await supabase
         .from("weekly_supervisors")
         .select("*")
-        .gte("week_start", format(weekStart, "yyyy-MM-dd"))
-        .lte("week_end", format(weekEnd, "yyyy-MM-dd"));
+        .lte("week_start", todayStr)
+        .gte("week_end", todayStr);
 
       if (supervisorError) throw supervisorError;
       setCurrentSupervisors(supervisorData || []);
