@@ -13,7 +13,8 @@ import {
   X,
   User,
   Star,
-  Megaphone
+  Megaphone,
+  AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
     { id: "ranking", label: "Ranking", icon: Trophy },
     { id: "training", label: "Treinamentos", icon: GraduationCap },
     { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadCount },
+    { id: "occurrences", label: "Ocorrências", icon: AlertTriangle },
   ];
 
   // Management items only for manager

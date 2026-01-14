@@ -15,6 +15,7 @@ import { TrainingModule } from "@/components/modules/TrainingModule";
 import { SupervisorManagement } from "@/components/modules/SupervisorManagement";
 import { FeedbackHistoryModule } from "@/components/modules/FeedbackHistoryModule";
 import { AnnouncementsModule } from "@/components/modules/AnnouncementsModule";
+import { OccurrencesModule } from "@/components/modules/OccurrencesModule";
 
 const ChecklistHistoryModule = () => (
   <div className="text-center py-12">
@@ -30,6 +31,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
   training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
   announcements: { title: "Comunicados", subtitle: "Avisos e recados importantes" },
+  occurrences: { title: "Ocorrências", subtitle: "Registre e acompanhe ocorrências" },
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
   supervisor: { title: "Supervisor da Semana", subtitle: "Gestão da supervisão semanal" },
   "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
@@ -76,6 +78,8 @@ const Index = () => {
         return <TrainingModule />;
       case "announcements":
         return <AnnouncementsModule />;
+      case "occurrences":
+        return <OccurrencesModule />;
       case "team":
         return isManager ? <TeamModule /> : <RankingModule />;
       case "supervisor":
