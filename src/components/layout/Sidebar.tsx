@@ -38,8 +38,9 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
   const operationItems = [
     // Only show checklist for manager or supervisor
     ...(canSubmitChecklist ? [{ id: "checklist", label: "Checklist Diário", icon: ClipboardCheck }] : []),
-    { id: "goals-race", label: "Corrida da Meta", icon: Target },
+    { id: "goals-race", label: "Pontuação", icon: Target },
     { id: "sales-goals", label: "Metas de Vendas", icon: DollarSign },
+    { id: "sales-registration", label: "Registrar Venda", icon: DollarSign },
     { id: "ranking", label: "Ranking", icon: Trophy },
     { id: "training", label: "Treinamentos", icon: GraduationCap },
     { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadCount },

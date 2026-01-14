@@ -36,7 +36,7 @@ export function GoalsProgress() {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5 text-primary" />
-            Corrida da Meta
+            Pontuação
           </CardTitle>
         </div>
       </CardHeader>
@@ -67,7 +67,7 @@ export function GoalsProgress() {
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-muted-foreground text-sm">
-              Configure a Corrida da Meta para ver o progresso
+              Configure a Pontuação para ver o progresso
             </p>
           </div>
         )}
