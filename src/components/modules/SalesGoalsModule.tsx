@@ -51,14 +51,11 @@ export function SalesGoalsModule() {
   const [events, setEvents] = useState<SalesEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [isConfiguring, setIsConfiguring] = useState(false);
-  const [isAddingSale, setIsAddingSale] = useState(false);
   
   // Form states
   const [minGoal, setMinGoal] = useState("20");
   const [midGoal, setMidGoal] = useState("50");
   const [maxGoal, setMaxGoal] = useState("100");
-  const [saleValue, setSaleValue] = useState("");
-  const [saleDescription, setSaleDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -156,55 +153,6 @@ export function SalesGoalsModule() {
     } catch (error) {
       console.error("Error saving config:", error);
       toast.error("Erro ao salvar metas");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAddSale = async () => {
-    if (!config) return;
-
-    const value = parseFloat(saleValue);
-    if (isNaN(value) || value <= 0) {
-      toast.error("Por favor, insira um valor de venda válido");
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Add sale event
-      const { data: eventData, error: eventError } = await supabase
-        .from("sales_events")
-        .insert({
-          config_id: config.id,
-          sale_value: value,
-          description: saleDescription || null,
-          created_by: user?.id,
-          created_by_name: profile?.full_name || "Usuário",
-        })
-        .select()
-        .single();
-
-      if (eventError) throw eventError;
-
-      // Update current_value
-      const newValue = config.current_value + value;
-      const { error: updateError } = await supabase
-        .from("sales_goals_config")
-        .update({ current_value: newValue })
-        .eq("id", config.id);
-
-      if (updateError) throw updateError;
-
-      setConfig({ ...config, current_value: newValue });
-      setEvents([eventData, ...events]);
-      setSaleValue("");
-      setSaleDescription("");
-      setIsAddingSale(false);
-      toast.success(`Venda de R$ ${value.toFixed(2)} registrada!`);
-    } catch (error) {
-      console.error("Error adding sale:", error);
-      toast.error("Erro ao registrar venda");
     } finally {
       setIsSubmitting(false);
     }
@@ -403,16 +351,6 @@ export function SalesGoalsModule() {
         </div>
         {isManager && (
           <div className="flex gap-2">
-            {config && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsAddingSale(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Registrar Venda
-              </Button>
-            )}
             <Button
               variant="outline"
               size="sm"
@@ -499,53 +437,6 @@ export function SalesGoalsModule() {
         </Card>
       )}
 
-      {/* Add Sale Panel */}
-      {isManager && isAddingSale && config && (
-        <Card className="border-green-500/30 bg-green-500/5">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-green-500" />
-              Registrar Venda
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Valor da Venda (R$)</Label>
-                <Input
-                  type="number"
-                  value={saleValue}
-                  onChange={(e) => setSaleValue(e.target.value)}
-                  placeholder="0.00"
-                  min="0.01"
-                  step="0.01"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Descrição (opcional)</Label>
-                <Input
-                  value={saleDescription}
-                  onChange={(e) => setSaleDescription(e.target.value)}
-                  placeholder="Ex: Pacote facial cliente Maria"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleAddSale} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
-                {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4 mr-2" />
-                )}
-                Registrar Venda
-              </Button>
-              <Button variant="ghost" onClick={() => setIsAddingSale(false)}>
-                Cancelar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* No config state */}
       {!config && (
