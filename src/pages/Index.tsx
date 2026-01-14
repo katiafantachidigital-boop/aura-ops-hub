@@ -16,6 +16,7 @@ import { SupervisorManagement } from "@/components/modules/SupervisorManagement"
 import { FeedbackHistoryModule } from "@/components/modules/FeedbackHistoryModule";
 import { AnnouncementsModule } from "@/components/modules/AnnouncementsModule";
 import { OccurrencesModule } from "@/components/modules/OccurrencesModule";
+import { SalesGoalsModule } from "@/components/modules/SalesGoalsModule";
 
 const ChecklistHistoryModule = () => (
   <div className="text-center py-12">
@@ -28,6 +29,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
   checklist: { title: "Checklist Diário", subtitle: "Avaliação diária da equipe" },
   "goals-race": { title: "Corrida da Meta", subtitle: "Acompanhe o progresso da equipe" },
+  "sales-goals": { title: "Metas de Vendas", subtitle: "Acompanhe as vendas da equipe" },
   ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
   training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
   announcements: { title: "Comunicados", subtitle: "Avisos e recados importantes" },
@@ -72,6 +74,8 @@ const Index = () => {
         return <RoutineManagement />;
       case "goals-race":
         return <GoalsRaceModule />;
+      case "sales-goals":
+        return <SalesGoalsModule />;
       case "ranking":
         return <RankingModule />;
       case "training":

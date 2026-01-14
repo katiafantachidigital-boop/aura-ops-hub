@@ -14,7 +14,8 @@ import {
   User,
   Star,
   Megaphone,
-  AlertTriangle
+  AlertTriangle,
+  DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
     // Only show checklist for manager or supervisor
     ...(canSubmitChecklist ? [{ id: "checklist", label: "Checklist Diário", icon: ClipboardCheck }] : []),
     { id: "goals-race", label: "Corrida da Meta", icon: Target },
+    { id: "sales-goals", label: "Metas de Vendas", icon: DollarSign },
     { id: "ranking", label: "Ranking", icon: Trophy },
     { id: "training", label: "Treinamentos", icon: GraduationCap },
     { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadCount },

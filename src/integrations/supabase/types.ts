@@ -523,6 +523,86 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_events: {
+        Row: {
+          config_id: string
+          created_at: string
+          created_by: string
+          created_by_name: string
+          description: string | null
+          id: string
+          sale_value: number
+        }
+        Insert: {
+          config_id: string
+          created_at?: string
+          created_by: string
+          created_by_name: string
+          description?: string | null
+          id?: string
+          sale_value: number
+        }
+        Update: {
+          config_id?: string
+          created_at?: string
+          created_by?: string
+          created_by_name?: string
+          description?: string | null
+          id?: string
+          sale_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_events_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "sales_goals_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_goals_config: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_value: number
+          id: string
+          is_active: boolean
+          max_goal: number
+          mid_goal: number
+          min_goal: number
+          period_end: string | null
+          period_start: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_value?: number
+          id?: string
+          is_active?: boolean
+          max_goal?: number
+          mid_goal?: number
+          min_goal?: number
+          period_end?: string | null
+          period_start?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_value?: number
+          id?: string
+          is_active?: boolean
+          max_goal?: number
+          mid_goal?: number
+          min_goal?: number
+          period_end?: string | null
+          period_start?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       training_contents: {
         Row: {
           content_text: string | null
