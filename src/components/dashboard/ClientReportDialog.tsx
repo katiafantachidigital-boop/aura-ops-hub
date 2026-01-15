@@ -18,6 +18,7 @@ interface Client {
   id: string;
   name: string;
   sale_participants: string[] | null;
+  registered_by: string;
 }
 
 interface Report {
@@ -37,7 +38,7 @@ interface ClientReportDialogProps {
 }
 
 export function ClientReportDialog({ open, onOpenChange }: ClientReportDialogProps) {
-  const { user, profile } = useAuth();
+  const { user, profile, isManager } = useAuth();
   const [activeTab, setActiveTab] = useState("report");
   const [loading, setLoading] = useState(false);
   const [loadingClients, setLoadingClients] = useState(false);
@@ -54,39 +55,65 @@ export function ClientReportDialog({ open, onOpenChange }: ClientReportDialogPro
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
   useEffect(() => {
-    if (open) {
+    if (open && user) {
       loadClients();
       loadReports();
     }
-  }, [open]);
+  }, [open, user]);
 
   const loadClients = async () => {
+    if (!user) return;
+    
     setLoadingClients(true);
-    const { data } = await supabase
+    
+    // Gestora can see all clients, others only see clients they registered
+    let query = supabase
       .from('clients')
-      .select('id, name, sale_participants')
+      .select('id, name, sale_participants, registered_by')
       .order('name');
+    
+    if (!isManager) {
+      query = query.eq('registered_by', user.id);
+    }
+    
+    const { data } = await query;
     
     setClients(data || []);
     setLoadingClients(false);
   };
 
   const loadReports = async () => {
+    if (!user) return;
+    
     setLoadingReports(true);
-    const { data: reportsData } = await supabase
+    
+    // Load reports - gestora sees all, others see only reports for their clients
+    let reportsQuery = supabase
       .from('client_reports')
       .select('*')
       .order('created_at', { ascending: false });
+    
+    const { data: reportsData } = await reportsQuery;
 
     if (reportsData) {
-      // Get client names
-      const { data: clientsData } = await supabase
-        .from('clients')
-        .select('id, name');
+      // Get client names and filter by registered_by for non-managers
+      let clientsQuery = supabase.from('clients').select('id, name, registered_by');
+      
+      if (!isManager) {
+        clientsQuery = clientsQuery.eq('registered_by', user.id);
+      }
+      
+      const { data: clientsData } = await clientsQuery;
 
       const clientMap = new Map(clientsData?.map(c => [c.id, c.name]) || []);
+      const allowedClientIds = new Set(clientsData?.map(c => c.id) || []);
       
-      const enrichedReports = reportsData.map(r => ({
+      // Filter reports to only show those for clients the user registered (or all for managers)
+      const filteredReports = isManager 
+        ? reportsData 
+        : reportsData.filter(r => allowedClientIds.has(r.client_id));
+      
+      const enrichedReports = filteredReports.map(r => ({
         ...r,
         client_name: clientMap.get(r.client_id) || "Cliente removido"
       }));
