@@ -531,7 +531,13 @@ export type Database = {
           created_by_name: string
           description: string | null
           id: string
+          payment_boleto: number | null
+          payment_cash: number | null
+          payment_credit: number | null
+          payment_debit: number | null
+          payment_pix: number | null
           sale_value: number
+          sales_quantity: number | null
         }
         Insert: {
           config_id: string
@@ -540,7 +546,13 @@ export type Database = {
           created_by_name: string
           description?: string | null
           id?: string
+          payment_boleto?: number | null
+          payment_cash?: number | null
+          payment_credit?: number | null
+          payment_debit?: number | null
+          payment_pix?: number | null
           sale_value: number
+          sales_quantity?: number | null
         }
         Update: {
           config_id?: string
@@ -549,7 +561,13 @@ export type Database = {
           created_by_name?: string
           description?: string | null
           id?: string
+          payment_boleto?: number | null
+          payment_cash?: number | null
+          payment_credit?: number | null
+          payment_debit?: number | null
+          payment_pix?: number | null
           sale_value?: number
+          sales_quantity?: number | null
         }
         Relationships: [
           {
