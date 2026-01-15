@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Megaphone, Trash2, FileAudio, File, Download, Loader2 } from "lucide-react";
+import { Plus, Megaphone, Trash2, FileAudio, File, Download, Loader2, Eye, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -33,6 +33,7 @@ export function AnnouncementsModule() {
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
+  const [viewingFile, setViewingFile] = useState<{url: string, type: string | null} | null>(null);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -353,32 +354,127 @@ export function AnnouncementsModule() {
                           <source src={announcement.file_url} type={announcement.file_type} />
                           Seu navegador não suporta áudio.
                         </audio>
+                        <a
+                          href={announcement.file_url}
+                          download
+                          className="inline-flex items-center gap-2 text-primary hover:underline text-sm"
+                        >
+                          <Download className="h-4 w-4" />
+                          Baixar áudio
+                        </a>
                       </div>
                     ) : announcement.file_type?.startsWith('image/') ? (
                       <div className="space-y-2">
                         <img 
                           src={announcement.file_url} 
                           alt="Anexo" 
-                          className="max-w-full h-auto rounded-lg max-h-96 object-contain"
+                          className="max-w-full h-auto rounded-lg max-h-48 object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => setViewingFile({url: announcement.file_url!, type: announcement.file_type})}
                         />
+                        <div className="flex gap-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewingFile({url: announcement.file_url!, type: announcement.file_type})}
+                            className="gap-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Ver em tela cheia
+                          </Button>
+                          <a
+                            href={announcement.file_url}
+                            download
+                            className="inline-flex items-center gap-2 text-primary hover:underline text-sm"
+                          >
+                            <Download className="h-4 w-4" />
+                            Baixar imagem
+                          </a>
+                        </div>
                       </div>
                     ) : (
-                      <a
-                        href={announcement.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-primary hover:underline"
-                      >
+                      <div className="flex gap-3 items-center">
                         {getFileIcon(announcement.file_type)}
-                        <Download className="h-4 w-4" />
-                        Baixar anexo
-                      </a>
+                        <span className="text-sm text-muted-foreground">Arquivo anexado</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setViewingFile({url: announcement.file_url!, type: announcement.file_type})}
+                          className="gap-2"
+                        >
+                          <Eye className="h-4 w-4" />
+                          Visualizar
+                        </Button>
+                        <a
+                          href={announcement.file_url}
+                          download
+                          className="inline-flex items-center gap-2 text-primary hover:underline text-sm"
+                        >
+                          <Download className="h-4 w-4" />
+                          Baixar
+                        </a>
+                      </div>
                     )}
                   </div>
                 )}
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Fullscreen file viewer modal */}
+      {viewingFile && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setViewingFile(null)}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 right-4 text-white hover:bg-white/20"
+            onClick={() => setViewingFile(null)}
+          >
+            <X className="h-6 w-6" />
+          </Button>
+          <a
+            href={viewingFile.url}
+            download
+            className="absolute top-4 right-16 text-white hover:bg-white/20 p-2 rounded-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Download className="h-6 w-6" />
+          </a>
+          <div 
+            className="max-w-full max-h-full overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {viewingFile.type?.startsWith('image/') ? (
+              <img 
+                src={viewingFile.url} 
+                alt="Visualização" 
+                className="max-w-full max-h-[90vh] object-contain"
+              />
+            ) : viewingFile.type === 'application/pdf' ? (
+              <iframe 
+                src={viewingFile.url} 
+                className="w-[90vw] h-[90vh] bg-white"
+                title="Visualização PDF"
+              />
+            ) : (
+              <div className="bg-white p-8 rounded-lg text-center">
+                <File className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <p className="text-foreground mb-4">Este arquivo não pode ser visualizado diretamente.</p>
+                <a
+                  href={viewingFile.url}
+                  download
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md"
+                >
+                  <Download className="h-4 w-4" />
+                  Baixar arquivo
+                </a>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
