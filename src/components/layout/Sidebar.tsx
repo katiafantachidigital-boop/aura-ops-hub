@@ -56,10 +56,10 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
     { id: "settings", label: "Configurações", icon: Settings },
   ] : [];
 
-  // Main items only for manager
-  const mainItems = isManager ? [
+  // Dashboard available for all users
+  const mainItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  ] : [];
+  ];
 
   const profileItems = [
     { id: "profile", label: "Meu Perfil", icon: User },

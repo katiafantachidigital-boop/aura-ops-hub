@@ -136,7 +136,7 @@ export function AnnouncementsModule() {
       return;
     }
 
-    if (!user || !profile) {
+    if (!user) {
       toast.error('Usuário não autenticado');
       return;
     }
@@ -174,7 +174,7 @@ export function AnnouncementsModule() {
           file_url: fileUrl,
           file_type: fileType,
           created_by: user.id,
-          created_by_name: profile.full_name || 'Gestora'
+          created_by_name: profile?.full_name || 'Gestora'
         });
 
       if (error) throw error;
