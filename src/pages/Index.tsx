@@ -70,8 +70,8 @@ const Index = () => {
   const renderContent = () => {
     switch (activeItem) {
       case "dashboard":
-        // Non-managers only see ranking, goals-race and training
-        return isManager ? <Dashboard /> : <RankingModule />;
+        // All users can see dashboard
+        return <Dashboard />;
       case "checklist":
         return <RoutineManagement />;
       case "goals-race":
@@ -89,19 +89,19 @@ const Index = () => {
       case "occurrences":
         return <OccurrencesModule />;
       case "team":
-        return isManager ? <TeamModule /> : <RankingModule />;
+        return isManager ? <TeamModule /> : <Dashboard />;
       case "supervisor":
-        return isManager ? <SupervisorManagement /> : <RankingModule />;
+        return isManager ? <SupervisorManagement /> : <Dashboard />;
       case "checklist-history":
-        return isManager ? <ChecklistHistoryModule /> : <RankingModule />;
+        return isManager ? <ChecklistHistoryModule /> : <Dashboard />;
       case "feedback-history":
-        return isManager ? <FeedbackHistoryModule /> : <RankingModule />;
+        return isManager ? <FeedbackHistoryModule /> : <Dashboard />;
       case "settings":
-        return isManager ? <SettingsModule /> : <RankingModule />;
+        return isManager ? <SettingsModule /> : <Dashboard />;
       case "profile":
         return <CollaboratorProfile />;
       default:
-        return isManager ? <Dashboard /> : <RankingModule />;
+        return <Dashboard />;
     }
   };
 
