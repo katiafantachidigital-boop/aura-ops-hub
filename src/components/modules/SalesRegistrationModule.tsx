@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { 
   DollarSign, 
   Plus, 
@@ -16,13 +18,16 @@ import {
   Banknote,
   Receipt,
   Wallet,
-  Hash
+  Hash,
+  CalendarIcon,
+  Search
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface SalesGoalsConfig {
   id: string;
@@ -52,9 +57,14 @@ export function SalesRegistrationModule() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Filter states
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+
   // Form states
-  const [salesQuantity, setSalesQuantity] = useState("");
   const [totalValue, setTotalValue] = useState("");
+  const [salesQuantity, setSalesQuantity] = useState("");
   const [paymentPix, setPaymentPix] = useState("");
   const [paymentCredit, setPaymentCredit] = useState("");
   const [paymentDebit, setPaymentDebit] = useState("");
@@ -79,14 +89,13 @@ export function SalesRegistrationModule() {
       if (configError) throw configError;
       setConfig(configData);
 
-      // Load recent sales events
+      // Load all sales events (we'll filter client-side for better UX)
       if (configData) {
         const { data: eventsData, error: eventsError } = await supabase
           .from("sales_events")
           .select("*")
           .eq("config_id", configData.id)
-          .order("created_at", { ascending: false })
-          .limit(30);
+          .order("created_at", { ascending: false });
 
         if (eventsError) throw eventsError;
         setEvents(eventsData || []);
@@ -105,27 +114,16 @@ export function SalesRegistrationModule() {
       return;
     }
 
-    const quantity = parseInt(salesQuantity) || 0;
     const value = parseFloat(totalValue) || 0;
+    const quantity = parseInt(salesQuantity) || 0;
     const pix = parseInt(paymentPix) || 0;
     const credit = parseInt(paymentCredit) || 0;
     const debit = parseInt(paymentDebit) || 0;
     const boleto = parseInt(paymentBoleto) || 0;
     const cash = parseInt(paymentCash) || 0;
 
-    if (quantity <= 0) {
-      toast.error("Digite a quantidade de vendas");
-      return;
-    }
-
     if (value <= 0) {
       toast.error("Digite o valor total das vendas");
-      return;
-    }
-
-    const totalPayments = pix + credit + debit + boleto + cash;
-    if (totalPayments !== quantity) {
-      toast.error(`A soma dos métodos de pagamento (${totalPayments}) deve ser igual à quantidade de vendas (${quantity})`);
       return;
     }
 
@@ -139,7 +137,11 @@ export function SalesRegistrationModule() {
       if (boleto > 0) paymentDetails.push(`${boleto} Boleto`);
       if (cash > 0) paymentDetails.push(`${cash} Dinheiro`);
       
-      const description = `${quantity} venda(s) - ${paymentDetails.join(", ")}`;
+      const description = quantity > 0 
+        ? `${quantity} venda(s)${paymentDetails.length > 0 ? ` - ${paymentDetails.join(", ")}` : ""}`
+        : paymentDetails.length > 0 
+          ? paymentDetails.join(", ")
+          : null;
 
       // Add sale event
       const { data: eventData, error: eventError } = await supabase
@@ -147,12 +149,12 @@ export function SalesRegistrationModule() {
         .insert({
           config_id: config.id,
           sale_value: value,
-          sales_quantity: quantity,
-          payment_pix: pix,
-          payment_credit: credit,
-          payment_debit: debit,
-          payment_boleto: boleto,
-          payment_cash: cash,
+          sales_quantity: quantity > 0 ? quantity : null,
+          payment_pix: pix > 0 ? pix : null,
+          payment_credit: credit > 0 ? credit : null,
+          payment_debit: debit > 0 ? debit : null,
+          payment_boleto: boleto > 0 ? boleto : null,
+          payment_cash: cash > 0 ? cash : null,
           description,
           created_by: user?.id,
           created_by_name: profile?.full_name || "Usuário",
@@ -175,15 +177,15 @@ export function SalesRegistrationModule() {
       setEvents([eventData, ...events]);
       
       // Reset form
-      setSalesQuantity("");
       setTotalValue("");
+      setSalesQuantity("");
       setPaymentPix("");
       setPaymentCredit("");
       setPaymentDebit("");
       setPaymentBoleto("");
       setPaymentCash("");
       
-      toast.success(`Vendas do dia registradas! R$ ${value.toFixed(2)}`);
+      toast.success(`Venda registrada! R$ ${value.toFixed(2)}`);
     } catch (error) {
       console.error("Error adding sale:", error);
       toast.error("Erro ao registrar vendas");
@@ -220,6 +222,27 @@ export function SalesRegistrationModule() {
       toast.error("Erro ao remover registro");
     }
   };
+
+  // Filter events by selected month and search query
+  const filteredEvents = events.filter(event => {
+    const eventDate = parseISO(event.created_at);
+    const monthStart = startOfMonth(selectedMonth);
+    const monthEnd = endOfMonth(selectedMonth);
+    
+    const isInMonth = isWithinInterval(eventDate, { start: monthStart, end: monthEnd });
+    
+    if (!isInMonth) return false;
+    
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const matchesName = event.created_by_name.toLowerCase().includes(query);
+    const matchesDescription = event.description?.toLowerCase().includes(query);
+    const matchesValue = event.sale_value.toString().includes(query);
+    const matchesDate = format(eventDate, "dd/MM/yyyy").includes(query);
+    
+    return matchesName || matchesDescription || matchesValue || matchesDate;
+  });
 
   if (loading) {
     return (
@@ -258,41 +281,41 @@ export function SalesRegistrationModule() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Hash className="w-4 h-4" />
-                    Quantidade de Vendas *
-                  </Label>
-                  <Input
-                    type="number"
-                    value={salesQuantity}
-                    onChange={(e) => setSalesQuantity(e.target.value)}
-                    placeholder="0"
-                    min="1"
-                  />
-                </div>
+              {/* Required field: Value */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Valor Total (R$) *
+                </Label>
+                <Input
+                  type="number"
+                  value={totalValue}
+                  onChange={(e) => setTotalValue(e.target.value)}
+                  placeholder="0.00"
+                  min="0.01"
+                  step="0.01"
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
-                    Valor Total (R$) *
-                  </Label>
-                  <Input
-                    type="number"
-                    value={totalValue}
-                    onChange={(e) => setTotalValue(e.target.value)}
-                    placeholder="0.00"
-                    min="0.01"
-                    step="0.01"
-                  />
-                </div>
+              {/* Optional field: Quantity */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-muted-foreground">
+                  <Hash className="w-4 h-4" />
+                  Quantidade de Vendas (opcional)
+                </Label>
+                <Input
+                  type="number"
+                  value={salesQuantity}
+                  onChange={(e) => setSalesQuantity(e.target.value)}
+                  placeholder="0"
+                  min="0"
+                />
               </div>
 
               <div className="space-y-3">
                 <Label className="flex items-center gap-2 text-muted-foreground">
                   <CreditCard className="w-4 h-4" />
-                  Métodos de Pagamento (quantidade por tipo)
+                  Métodos de Pagamento (opcional)
                 </Label>
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -381,17 +404,11 @@ export function SalesRegistrationModule() {
                     </div>
                   </div>
                 </div>
-
-                {salesQuantity && parseInt(salesQuantity) > 0 && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    Total de pagamentos: {(parseInt(paymentPix) || 0) + (parseInt(paymentCredit) || 0) + (parseInt(paymentDebit) || 0) + (parseInt(paymentBoleto) || 0) + (parseInt(paymentCash) || 0)} / {salesQuantity} vendas
-                  </p>
-                )}
               </div>
 
               <Button 
                 onClick={handleSubmitSale} 
-                disabled={isSubmitting || !salesQuantity || !totalValue}
+                disabled={isSubmitting || !totalValue}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 {isSubmitting ? (
@@ -399,35 +416,79 @@ export function SalesRegistrationModule() {
                 ) : (
                   <Plus className="w-4 h-4 mr-2" />
                 )}
-                Registrar Vendas do Dia
+                Registrar Venda
               </Button>
             </CardContent>
           </Card>
 
           {/* Sales History */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
                 <History className="w-5 h-5" />
                 Histórico de Registros
               </CardTitle>
+              
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-2 mt-3">
+                {/* Month picker */}
+                <Popover open={showMonthPicker} onOpenChange={setShowMonthPicker}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal",
+                        !selectedMonth && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedMonth}
+                      onSelect={(date) => {
+                        if (date) {
+                          setSelectedMonth(date);
+                          setShowMonthPicker(false);
+                        }
+                      }}
+                      locale={ptBR}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {/* Search */}
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, valor, data..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px] pr-4">
-                {events.length === 0 ? (
+                {filteredEvents.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Nenhum registro de vendas</p>
+                    <p className="text-sm">Nenhum registro encontrado</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {events.map((event) => (
+                    {filteredEvents.map((event) => (
                       <div
                         key={event.id}
                         className="p-3 rounded-lg bg-muted/50 space-y-2"
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="default" className="text-xs bg-green-600">
                               R$ {event.sale_value.toFixed(2)}
                             </Badge>
@@ -436,6 +497,9 @@ export function SalesRegistrationModule() {
                                 {event.sales_quantity} venda(s)
                               </Badge>
                             )}
+                            <span className="text-xs text-muted-foreground">
+                              {format(parseISO(event.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                            </span>
                           </div>
                           {isManager && (
                             <Button
@@ -478,10 +542,9 @@ export function SalesRegistrationModule() {
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{event.created_by_name}</span>
-                          <span>{format(new Date(event.created_at), "dd/MM HH:mm", { locale: ptBR })}</span>
-                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Por {event.created_by_name}
+                        </p>
                       </div>
                     ))}
                   </div>

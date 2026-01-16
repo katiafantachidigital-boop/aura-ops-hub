@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Megaphone, Trash2, FileAudio, File, Download, Loader2, Eye, X } from "lucide-react";
+import { Plus, Megaphone, Trash2, FileAudio, File, Download, Loader2, Eye, X, Globe, Lock, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -21,11 +23,19 @@ interface Announcement {
   created_at: string;
   created_by: string;
   created_by_name: string;
+  visibility: string;
+  target_profiles: string[] | null;
+}
+
+interface Profile {
+  id: string;
+  full_name: string | null;
 }
 
 export function AnnouncementsModule() {
   const { user, profile, isManager } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -34,10 +44,17 @@ export function AnnouncementsModule() {
   const [file, setFile] = useState<File | null>(null);
   const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
   const [viewingFile, setViewingFile] = useState<{url: string, type: string | null} | null>(null);
+  
+  // Visibility states
+  const [visibility, setVisibility] = useState<"public" | "exclusive">("public");
+  const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
 
   useEffect(() => {
     fetchAnnouncements();
     fetchReadAnnouncements();
+    if (isManager) {
+      fetchAllProfiles();
+    }
     
     // Subscribe to realtime updates
     const channel = supabase
@@ -58,7 +75,7 @@ export function AnnouncementsModule() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isManager]);
 
   // Mark announcements as read when viewing
   useEffect(() => {
@@ -66,6 +83,20 @@ export function AnnouncementsModule() {
       markAnnouncementsAsRead();
     }
   }, [user, announcements]);
+
+  const fetchAllProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .order('full_name');
+
+      if (error) throw error;
+      setAllProfiles(data || []);
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+    }
+  };
 
   const fetchAnnouncements = async () => {
     try {
@@ -142,6 +173,11 @@ export function AnnouncementsModule() {
       return;
     }
 
+    if (visibility === "exclusive" && selectedProfiles.length === 0) {
+      toast.error('Selecione pelo menos um perfil para comunicado exclusivo');
+      return;
+    }
+
     setCreating(true);
 
     try {
@@ -175,16 +211,16 @@ export function AnnouncementsModule() {
           file_url: fileUrl,
           file_type: fileType,
           created_by: user.id,
-          created_by_name: profile?.full_name || 'Gestora'
+          created_by_name: profile?.full_name || 'Gestora',
+          visibility: visibility,
+          target_profiles: visibility === "exclusive" ? selectedProfiles : null
         });
 
       if (error) throw error;
 
       toast.success('Comunicado publicado!');
       setShowCreateDialog(false);
-      setTitle('');
-      setContent('');
-      setFile(null);
+      resetForm();
       fetchAnnouncements();
     } catch (error) {
       console.error('Error creating announcement:', error);
@@ -192,6 +228,14 @@ export function AnnouncementsModule() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setContent('');
+    setFile(null);
+    setVisibility('public');
+    setSelectedProfiles([]);
   };
 
   const handleDeleteAnnouncement = async (id: string, fileUrl: string | null) => {
@@ -223,10 +267,33 @@ export function AnnouncementsModule() {
     }
   };
 
+  const toggleProfile = (profileId: string) => {
+    setSelectedProfiles(prev => 
+      prev.includes(profileId)
+        ? prev.filter(id => id !== profileId)
+        : [...prev, profileId]
+    );
+  };
+
   const getFileIcon = (fileType: string | null) => {
     if (!fileType) return <File className="h-4 w-4" />;
     if (fileType.startsWith('audio/')) return <FileAudio className="h-4 w-4" />;
     return <File className="h-4 w-4" />;
+  };
+
+  const getVisibilityBadge = (announcement: Announcement) => {
+    if (announcement.visibility === 'public') {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
+          <Globe className="h-3 w-3" /> Público
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full">
+        <Lock className="h-3 w-3" /> Exclusivo
+      </span>
+    );
   };
 
   if (loading) {
@@ -242,14 +309,17 @@ export function AnnouncementsModule() {
       {/* Header with create button */}
       {isManager && (
         <div className="flex justify-end">
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <Dialog open={showCreateDialog} onOpenChange={(open) => {
+            setShowCreateDialog(open);
+            if (!open) resetForm();
+          }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
                 Novo Comunicado
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Novo Comunicado</DialogTitle>
               </DialogHeader>
@@ -287,6 +357,61 @@ export function AnnouncementsModule() {
                     </p>
                   )}
                 </div>
+
+                {/* Visibility selection */}
+                <div className="space-y-3 pt-2 border-t">
+                  <Label>Visibilidade</Label>
+                  <RadioGroup
+                    value={visibility}
+                    onValueChange={(value: "public" | "exclusive") => setVisibility(value)}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="public" id="public" />
+                      <Label htmlFor="public" className="flex items-center gap-1 cursor-pointer">
+                        <Globe className="h-4 w-4 text-green-600" />
+                        Público
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="exclusive" id="exclusive" />
+                      <Label htmlFor="exclusive" className="flex items-center gap-1 cursor-pointer">
+                        <Lock className="h-4 w-4 text-orange-600" />
+                        Exclusivo
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {/* Profile selection for exclusive */}
+                {visibility === "exclusive" && (
+                  <div className="space-y-3 p-3 bg-muted/50 rounded-lg">
+                    <Label className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Selecione quem pode ver
+                    </Label>
+                    <div className="max-h-48 overflow-y-auto space-y-2">
+                      {allProfiles.map((p) => (
+                        <div key={p.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={p.id}
+                            checked={selectedProfiles.includes(p.id)}
+                            onCheckedChange={() => toggleProfile(p.id)}
+                          />
+                          <Label htmlFor={p.id} className="text-sm cursor-pointer">
+                            {p.full_name || 'Usuário sem nome'}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedProfiles.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {selectedProfiles.length} perfil(is) selecionado(s)
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <Button 
                   onClick={handleCreateAnnouncement} 
                   className="w-full"
@@ -322,7 +447,10 @@ export function AnnouncementsModule() {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-lg">{announcement.title}</CardTitle>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <CardTitle className="text-lg">{announcement.title}</CardTitle>
+                      {isManager && getVisibilityBadge(announcement)}
+                    </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       Por {announcement.created_by_name} • {format(new Date(announcement.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
                     </p>

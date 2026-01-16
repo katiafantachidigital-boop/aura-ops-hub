@@ -52,7 +52,9 @@ export type Database = {
           file_type: string | null
           file_url: string | null
           id: string
+          target_profiles: string[] | null
           title: string
+          visibility: string
         }
         Insert: {
           content: string
@@ -62,7 +64,9 @@ export type Database = {
           file_type?: string | null
           file_url?: string | null
           id?: string
+          target_profiles?: string[] | null
           title: string
+          visibility?: string
         }
         Update: {
           content?: string
@@ -72,7 +76,9 @@ export type Database = {
           file_type?: string | null
           file_url?: string | null
           id?: string
+          target_profiles?: string[] | null
           title?: string
+          visibility?: string
         }
         Relationships: []
       }
