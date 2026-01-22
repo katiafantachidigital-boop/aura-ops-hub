@@ -40,6 +40,7 @@ import {
   Eye,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PDFViewer } from "./PDFViewer";
 import { TrainingQuiz, QuizAnswersViewer } from "./TrainingQuiz";
 
 interface Training {
@@ -105,6 +106,10 @@ export function TrainingModule() {
   const [showAnswersDialog, setShowAnswersDialog] = useState(false);
   const [answersContent, setAnswersContent] = useState<{ id: string; title: string } | null>(null);
   const [selectedModule, setSelectedModule] = useState<TrainingModule | null>(null);
+  
+  // PDF Viewer state
+  const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
+  const [pdfViewerData, setPdfViewerData] = useState<{ url: string; title: string } | null>(null);
 
   // Form states
   const [newTraining, setNewTraining] = useState({
@@ -893,9 +898,27 @@ export function TrainingModule() {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() => window.open(content.content_url!, "_blank")}
+                                          onClick={() => {
+                                            // If it's a PDF document, open in viewer
+                                            const isPDF = content.content_type === "document" && 
+                                              (content.content_url!.toLowerCase().includes('.pdf') || 
+                                               content.content_url!.toLowerCase().includes('application/pdf'));
+                                            
+                                            if (isPDF) {
+                                              setPdfViewerData({ url: content.content_url!, title: content.title });
+                                              setPdfViewerOpen(true);
+                                            } else {
+                                              // For videos, audio, and other documents, open in new tab
+                                              window.open(content.content_url!, "_blank", "noopener,noreferrer");
+                                            }
+                                          }}
+                                          title={content.content_type === "document" ? "Ver documento" : "Reproduzir"}
                                         >
-                                          <Play className="h-4 w-4" />
+                                          {content.content_type === "document" ? (
+                                            <FileText className="h-4 w-4" />
+                                          ) : (
+                                            <Play className="h-4 w-4" />
+                                          )}
                                         </Button>
                                       )}
                                       {isManager && (
@@ -1171,6 +1194,19 @@ export function TrainingModule() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* PDF Viewer */}
+      {pdfViewerData && (
+        <PDFViewer
+          url={pdfViewerData.url}
+          title={pdfViewerData.title}
+          open={pdfViewerOpen}
+          onOpenChange={(open) => {
+            setPdfViewerOpen(open);
+            if (!open) setPdfViewerData(null);
+          }}
+        />
+      )}
     </div>
   );
 }
