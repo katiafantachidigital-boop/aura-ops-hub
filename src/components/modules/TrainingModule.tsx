@@ -352,10 +352,10 @@ export function TrainingModule() {
   const handleFileUpload = async (file: File): Promise<string | null> => {
     setUploadingFile(true);
     
-    // Validate file size (max 50MB)
-    const maxSize = 50 * 1024 * 1024;
+    // Validate file size (max 500MB - Supabase allows up to 5GB but we limit for practical reasons)
+    const maxSize = 500 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast.error("Arquivo muito grande. Máximo 50MB");
+      toast.error("Arquivo muito grande. Máximo 500MB");
       setUploadingFile(false);
       return null;
     }
