@@ -127,6 +127,13 @@ export function SalesRegistrationModule() {
       return;
     }
 
+    // Validate at least one payment method is selected
+    const totalPaymentMethods = pix + credit + debit + boleto + cash;
+    if (totalPaymentMethods === 0) {
+      toast.error("Selecione ao menos um método de pagamento");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Build description
@@ -313,10 +320,11 @@ export function SalesRegistrationModule() {
               </div>
 
               <div className="space-y-3">
-                <Label className="flex items-center gap-2 text-muted-foreground">
+                <Label className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4" />
-                  Métodos de Pagamento (opcional)
+                  Métodos de Pagamento *
                 </Label>
+                <p className="text-xs text-muted-foreground">Informe ao menos um método de pagamento</p>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2">
@@ -408,7 +416,9 @@ export function SalesRegistrationModule() {
 
               <Button 
                 onClick={handleSubmitSale} 
-                disabled={isSubmitting || !totalValue}
+                disabled={isSubmitting || !totalValue || (
+                  !paymentPix && !paymentCredit && !paymentDebit && !paymentBoleto && !paymentCash
+                )}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 {isSubmitting ? (

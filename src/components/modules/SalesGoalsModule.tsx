@@ -46,7 +46,7 @@ interface SalesEvent {
 }
 
 export function SalesGoalsModule() {
-  const { user, profile, isManager } = useAuth();
+  const { user, profile, isManager, loading: authLoading } = useAuth();
   const [config, setConfig] = useState<SalesGoalsConfig | null>(null);
   const [events, setEvents] = useState<SalesEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,8 +59,13 @@ export function SalesGoalsModule() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    // Only load data when auth is ready and user exists
+    if (!authLoading && user) {
+      loadData();
+    } else if (!authLoading && !user) {
+      setLoading(false);
+    }
+  }, [authLoading, user]);
 
   const loadData = async () => {
     try {
@@ -213,13 +218,18 @@ export function SalesGoalsModule() {
     const newValue = Math.max(0, config.current_value + amount);
     try {
       // Add event for manual adjustment
+      if (!user) {
+        toast.error("Usuário não autenticado");
+        return;
+      }
+
       const { data: eventData, error: eventError } = await supabase
         .from("sales_events")
         .insert({
           config_id: config.id,
           sale_value: amount,
           description: amount > 0 ? "Ajuste manual (+)" : "Ajuste manual (-)",
-          created_by: user?.id,
+          created_by: user.id,
           created_by_name: profile?.full_name || "Gestora",
         })
         .select()
@@ -333,10 +343,18 @@ export function SalesGoalsModule() {
     );
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Faça login para acessar as metas de vendas.</p>
       </div>
     );
   }
