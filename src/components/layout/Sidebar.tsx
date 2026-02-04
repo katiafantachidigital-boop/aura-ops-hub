@@ -21,6 +21,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadAnnouncements } from "@/hooks/useUnreadAnnouncements";
+import { useUnreadTrainings } from "@/hooks/useUnreadTrainings";
+import { useUnreadOccurrences } from "@/hooks/useUnreadOccurrences";
 import { Badge } from "@/components/ui/badge";
 
 interface SidebarProps {
@@ -32,7 +34,9 @@ interface SidebarProps {
 
 export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarProps) {
   const { isManager, canSubmitChecklist } = useAuth();
-  const { unreadCount } = useUnreadAnnouncements();
+  const { unreadCount: unreadAnnouncements } = useUnreadAnnouncements();
+  const { unreadCount: unreadTrainings } = useUnreadTrainings();
+  const { unreadCount: unreadOccurrences } = useUnreadOccurrences();
 
   // Build operation items based on permissions
   const operationItems = [
@@ -42,15 +46,15 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
     { id: "sales-goals", label: "Metas de Vendas", icon: DollarSign },
     { id: "sales-registration", label: "Registrar Venda", icon: DollarSign },
     { id: "ranking", label: "Ranking", icon: Trophy },
-    { id: "training", label: "Treinamentos", icon: GraduationCap },
-    { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadCount },
-    { id: "occurrences", label: "Ocorrências", icon: AlertTriangle },
+    { id: "training", label: "Treinamentos", icon: GraduationCap, badge: unreadTrainings },
+    { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadAnnouncements },
+    { id: "occurrences", label: "Ocorrências", icon: AlertTriangle, badge: unreadOccurrences },
   ];
 
   // Management items only for manager
   const managementItems = isManager ? [
     { id: "team", label: "Equipe", icon: Users },
-    { id: "supervisor", label: "Supervisora da Semana", icon: Crown },
+    { id: "supervisor", label: "Supervisora", icon: Crown },
     { id: "checklist-history", label: "Histórico de Checklists", icon: History },
     { id: "feedback-history", label: "Histórico de Avaliações", icon: Star },
     { id: "settings", label: "Configurações", icon: Settings },

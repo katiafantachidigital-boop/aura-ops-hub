@@ -2,10 +2,15 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUnreadOccurrences } from '@/hooks/useUnreadOccurrences';
 import { toast } from 'sonner';
-import { Plus, AlertTriangle, Trash2, User, Calendar } from 'lucide-react';
+import { Plus, AlertTriangle, Trash2, User, Calendar, Lock, Globe, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -25,6 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 
 interface Occurrence {
   id: string;
@@ -32,14 +38,25 @@ interface Occurrence {
   user_name: string;
   content: string;
   created_at: string;
+  visibility: string;
+  target_profiles: string[] | null;
+}
+
+interface Profile {
+  id: string;
+  full_name: string | null;
 }
 
 export const OccurrencesModule = () => {
   const { user, profile, isManager } = useAuth();
+  const { markAllAsRead } = useUnreadOccurrences();
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [content, setContent] = useState('');
+  const [visibility, setVisibility] = useState<'public' | 'exclusive'>('public');
+  const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -53,7 +70,13 @@ export const OccurrencesModule = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOccurrences(data || []);
+      const occurrenceData = (data || []) as Occurrence[];
+      setOccurrences(occurrenceData);
+
+      // Mark all loaded occurrences as read
+      if (occurrenceData.length > 0) {
+        markAllAsRead(occurrenceData.map(o => o.id));
+      }
     } catch (error) {
       console.error('Error loading occurrences:', error);
       toast.error('Erro ao carregar ocorrências');
@@ -62,8 +85,26 @@ export const OccurrencesModule = () => {
     }
   };
 
+  const loadProfiles = async () => {
+    if (!isManager) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('profile_completed', true)
+        .neq('id', user?.id || '');
+
+      if (error) throw error;
+      setProfiles(data || []);
+    } catch (error) {
+      console.error('Error loading profiles:', error);
+    }
+  };
+
   useEffect(() => {
     loadOccurrences();
+    loadProfiles();
   }, [user]);
 
   const handleSubmit = async () => {
@@ -73,18 +114,27 @@ export const OccurrencesModule = () => {
       return;
     }
 
+    if (visibility === 'exclusive' && selectedProfiles.length === 0 && isManager) {
+      toast.error('Selecione ao menos um colaborador para ocorrência exclusiva');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { error } = await supabase.from('occurrences').insert({
         user_id: user.id,
         user_name: profile.full_name || 'Usuário',
         content: content.trim(),
+        visibility: isManager ? visibility : 'public',
+        target_profiles: visibility === 'exclusive' ? selectedProfiles : null,
       });
 
       if (error) throw error;
 
       toast.success('Ocorrência registrada com sucesso!');
       setContent('');
+      setVisibility('public');
+      setSelectedProfiles([]);
       setIsDialogOpen(false);
       loadOccurrences();
     } catch (error) {
@@ -107,6 +157,14 @@ export const OccurrencesModule = () => {
       toast.error('Erro ao excluir ocorrência');
     }
     setDeleteId(null);
+  };
+
+  const toggleProfileSelection = (profileId: string) => {
+    setSelectedProfiles(prev => 
+      prev.includes(profileId) 
+        ? prev.filter(id => id !== profileId)
+        : [...prev, profileId]
+    );
   };
 
   if (loading) {
@@ -136,7 +194,7 @@ export const OccurrencesModule = () => {
               Nova Ocorrência
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Registrar Ocorrência</DialogTitle>
             </DialogHeader>
@@ -147,6 +205,7 @@ export const OccurrencesModule = () => {
                   <span>{profile?.full_name || 'Usuário'}</span>
                 </div>
               </div>
+              
               <div className="space-y-2">
                 <Textarea
                   placeholder="Descreva a ocorrência..."
@@ -155,6 +214,70 @@ export const OccurrencesModule = () => {
                   rows={5}
                 />
               </div>
+
+              {/* Visibility Options - Only for Manager */}
+              {isManager && (
+                <div className="space-y-4 border-t pt-4">
+                  <Label className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Visibilidade
+                  </Label>
+                  
+                  <RadioGroup 
+                    value={visibility} 
+                    onValueChange={(value: 'public' | 'exclusive') => setVisibility(value)}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="public" id="public" />
+                      <Label htmlFor="public" className="flex items-center gap-2 cursor-pointer">
+                        <Globe className="h-4 w-4 text-green-500" />
+                        Pública (visível para todos)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="exclusive" id="exclusive" />
+                      <Label htmlFor="exclusive" className="flex items-center gap-2 cursor-pointer">
+                        <Lock className="h-4 w-4 text-orange-500" />
+                        Exclusiva (selecionar colaboradores)
+                      </Label>
+                    </div>
+                  </RadioGroup>
+
+                  {/* Profile Selection for Exclusive */}
+                  {visibility === 'exclusive' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">
+                        Selecione quem pode ver esta ocorrência:
+                      </Label>
+                      <ScrollArea className="h-40 border rounded-md p-3">
+                        <div className="space-y-2">
+                          {profiles.map((p) => (
+                            <div key={p.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`profile-${p.id}`}
+                                checked={selectedProfiles.includes(p.id)}
+                                onCheckedChange={() => toggleProfileSelection(p.id)}
+                              />
+                              <Label 
+                                htmlFor={`profile-${p.id}`} 
+                                className="cursor-pointer text-sm"
+                              >
+                                {p.full_name || 'Sem nome'}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                      {selectedProfiles.length > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {selectedProfiles.length} colaborador(es) selecionado(s)
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Button 
                 onClick={handleSubmit} 
                 disabled={submitting || !content.trim()}
@@ -190,6 +313,12 @@ export const OccurrencesModule = () => {
                         <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                           Você
                         </span>
+                      )}
+                      {occurrence.visibility === 'exclusive' && (
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <Lock className="h-3 w-3" />
+                          Exclusiva
+                        </Badge>
                       )}
                     </CardTitle>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">

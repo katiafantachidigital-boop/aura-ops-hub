@@ -236,7 +236,7 @@ export function SupervisorManagement() {
               <Crown className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <CardTitle>Supervisores da Semana</CardTitle>
+              <CardTitle>Supervisores</CardTitle>
               <CardDescription>
                 {format(weekStart, "dd/MM", { locale: ptBR })} - {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
                 {currentSupervisors.length > 0 && ` • ${currentSupervisors.length} supervisor${currentSupervisors.length > 1 ? 'es' : ''}`}
@@ -374,7 +374,7 @@ export function SupervisorManagement() {
         <CardHeader>
           <CardTitle>Colaboradores</CardTitle>
           <CardDescription>
-            Selecione colaboradores para promover a supervisor da semana (múltiplos permitidos)
+            Selecione colaboradores para promover a supervisor (múltiplos permitidos)
           </CardDescription>
         </CardHeader>
         <CardContent>

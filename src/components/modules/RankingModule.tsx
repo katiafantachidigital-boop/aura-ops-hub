@@ -21,7 +21,8 @@ import {
   Loader2,
   Settings2,
   Plus,
-  MinusCircle
+  MinusCircle,
+  DollarSign
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -54,6 +55,7 @@ interface CollaboratorRanking {
   delays: number;
   criticalErrors: number;
   trainingsCompleted: number;
+  salesRegistered: number;
 }
 
 interface GoalsRaceConfig {
@@ -101,10 +103,12 @@ const RankingModule: React.FC = () => {
     // Combinar dados
     const combined: CollaboratorRanking[] = (profiles || []).map((profile: Profile) => {
       const score = scores?.find((s: UserScore) => s.user_id === profile.id);
+      // Nova fórmula de pontos: checklist=3, perfeito=5, treinamento=5, venda=5
       const points = score ? (
-        (score.checklists_sent * 5) +
-        (score.perfect_checklists * 10) +
-        (score.trainings_completed * 3) -
+        (score.checklists_sent * 3) +
+        (score.perfect_checklists * 5) +
+        (score.trainings_completed * 5) +
+        ((score as any).sales_registered || 0) * 5 -
         (score.delays * 3) -
         (score.critical_errors * 5)
       ) : 0;
@@ -119,6 +123,7 @@ const RankingModule: React.FC = () => {
         delays: score?.delays || 0,
         criticalErrors: score?.critical_errors || 0,
         trainingsCompleted: score?.trainings_completed || 0,
+        salesRegistered: (score as any)?.sales_registered || 0,
       };
     });
 
@@ -363,6 +368,12 @@ const RankingModule: React.FC = () => {
                             <BookOpen className="h-3 w-3 text-blue-500" />
                             <span>{collaborator.trainingsCompleted} treinamentos</span>
                           </div>
+                          {collaborator.salesRegistered > 0 && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <DollarSign className="h-3 w-3 text-emerald-500" />
+                              <span>{collaborator.salesRegistered} vendas</span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Barra de Progresso */}
@@ -448,20 +459,20 @@ const RankingModule: React.FC = () => {
               </h4>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
-                  <span className="w-8 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">+5</span>
+                  <span className="w-8 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">+3</span>
                   <span className="text-foreground">Checklist enviado no prazo</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-8 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">+10</span>
+                  <span className="w-8 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">+5</span>
                   <span className="text-foreground">Checklist perfeito (100%)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-8 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">+3</span>
+                  <span className="w-8 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">+5</span>
                   <span className="text-foreground">Treinamento concluído</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="w-8 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">+2</span>
-                  <span className="text-foreground">Semana como supervisora</span>
+                  <span className="w-8 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">+5</span>
+                  <span className="text-foreground">Venda registrada</span>
                 </li>
               </ul>
             </div>

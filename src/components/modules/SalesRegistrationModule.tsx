@@ -180,6 +180,39 @@ export function SalesRegistrationModule() {
 
       if (updateError) throw updateError;
 
+      // Add points to user score (5 points per sale registration)
+      if (user?.id) {
+        const currentPeriod = new Date();
+        currentPeriod.setDate(1);
+        const periodStart = currentPeriod.toISOString().split('T')[0];
+
+        // Try to update existing record or insert new one
+        const { data: existingScore } = await supabase
+          .from('user_scores')
+          .select('id, sales_registered')
+          .eq('user_id', user.id)
+          .eq('period_start', periodStart)
+          .maybeSingle();
+
+        if (existingScore) {
+          await supabase
+            .from('user_scores')
+            .update({ 
+              sales_registered: (existingScore.sales_registered || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingScore.id);
+        } else {
+          await supabase
+            .from('user_scores')
+            .insert({
+              user_id: user.id,
+              period_start: periodStart,
+              sales_registered: 1
+            });
+        }
+      }
+
       setConfig({ ...config, current_value: newValue });
       setEvents([eventData, ...events]);
       
@@ -192,7 +225,7 @@ export function SalesRegistrationModule() {
       setPaymentBoleto("");
       setPaymentCash("");
       
-      toast.success(`Venda registrada! R$ ${value.toFixed(2)}`);
+      toast.success(`Venda registrada! R$ ${value.toFixed(2)} (+5 pontos)`);
     } catch (error) {
       console.error("Error adding sale:", error);
       toast.error("Erro ao registrar vendas");
