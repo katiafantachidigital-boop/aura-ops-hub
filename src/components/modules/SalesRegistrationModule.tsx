@@ -14,10 +14,6 @@ import {
   Loader2,
   History,
   ShoppingCart,
-  CreditCard,
-  Banknote,
-  Receipt,
-  Wallet,
   Hash,
   CalendarIcon,
   Search
@@ -39,11 +35,6 @@ interface SalesEvent {
   config_id: string;
   sale_value: number;
   sales_quantity: number | null;
-  payment_pix: number | null;
-  payment_credit: number | null;
-  payment_debit: number | null;
-  payment_boleto: number | null;
-  payment_cash: number | null;
   description: string | null;
   created_by: string;
   created_by_name: string;
@@ -62,14 +53,9 @@ export function SalesRegistrationModule() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showMonthPicker, setShowMonthPicker] = useState(false);
 
-  // Form states
+  // Form states - simplified: just value and optional quantity
   const [totalValue, setTotalValue] = useState("");
   const [salesQuantity, setSalesQuantity] = useState("");
-  const [paymentPix, setPaymentPix] = useState("");
-  const [paymentCredit, setPaymentCredit] = useState("");
-  const [paymentDebit, setPaymentDebit] = useState("");
-  const [paymentBoleto, setPaymentBoleto] = useState("");
-  const [paymentCash, setPaymentCash] = useState("");
 
   useEffect(() => {
     loadData();
@@ -116,52 +102,26 @@ export function SalesRegistrationModule() {
 
     const value = parseFloat(totalValue) || 0;
     const quantity = parseInt(salesQuantity) || 0;
-    const pix = parseInt(paymentPix) || 0;
-    const credit = parseInt(paymentCredit) || 0;
-    const debit = parseInt(paymentDebit) || 0;
-    const boleto = parseInt(paymentBoleto) || 0;
-    const cash = parseInt(paymentCash) || 0;
 
     if (value <= 0) {
       toast.error("Digite o valor total das vendas");
       return;
     }
 
-    // Validate at least one payment method is selected
-    const totalPaymentMethods = pix + credit + debit + boleto + cash;
-    if (totalPaymentMethods === 0) {
-      toast.error("Selecione ao menos um método de pagamento");
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       // Build description
-      const paymentDetails: string[] = [];
-      if (pix > 0) paymentDetails.push(`${pix} PIX`);
-      if (credit > 0) paymentDetails.push(`${credit} Crédito`);
-      if (debit > 0) paymentDetails.push(`${debit} Débito`);
-      if (boleto > 0) paymentDetails.push(`${boleto} Boleto`);
-      if (cash > 0) paymentDetails.push(`${cash} Dinheiro`);
-      
       const description = quantity > 0 
-        ? `${quantity} venda(s)${paymentDetails.length > 0 ? ` - ${paymentDetails.join(", ")}` : ""}`
-        : paymentDetails.length > 0 
-          ? paymentDetails.join(", ")
-          : null;
+        ? `${quantity} venda(s) - R$ ${value.toFixed(2)}`
+        : `R$ ${value.toFixed(2)}`;
 
-      // Add sale event (just for tracking individual sales, not affecting dashboard)
+      // Add sale event (just for tracking individual sales for commission purposes)
       const { data: eventData, error: eventError } = await supabase
         .from("sales_events")
         .insert({
           config_id: config.id,
           sale_value: value,
           sales_quantity: quantity > 0 ? quantity : null,
-          payment_pix: pix > 0 ? pix : null,
-          payment_credit: credit > 0 ? credit : null,
-          payment_debit: debit > 0 ? debit : null,
-          payment_boleto: boleto > 0 ? boleto : null,
-          payment_cash: cash > 0 ? cash : null,
           description,
           created_by: user?.id,
           created_by_name: profile?.full_name || "Usuário",
@@ -170,8 +130,6 @@ export function SalesRegistrationModule() {
         .single();
 
       if (eventError) throw eventError;
-
-      // NOTE: We no longer update current_value here - that is done via the Caixa module
 
       // Add points to user score (5 points per sale registration)
       if (user?.id) {
@@ -211,13 +169,8 @@ export function SalesRegistrationModule() {
       // Reset form
       setTotalValue("");
       setSalesQuantity("");
-      setPaymentPix("");
-      setPaymentCredit("");
-      setPaymentDebit("");
-      setPaymentBoleto("");
-      setPaymentCash("");
       
-      toast.success(`Venda registrada! R$ ${value.toFixed(2)} (+5 pontos)`);
+      toast.success(`Venda de R$ ${value.toFixed(2)} registrada! (+5 pontos)`);
     } catch (error) {
       console.error("Error adding sale:", error);
       toast.error("Erro ao registrar vendas");
@@ -237,7 +190,6 @@ export function SalesRegistrationModule() {
 
       if (deleteError) throw deleteError;
 
-      // NOTE: We no longer update current_value - dashboard uses cash_register
       setEvents(events.filter(e => e.id !== event.id));
       toast.success("Registro removido");
     } catch (error) {
@@ -280,7 +232,7 @@ export function SalesRegistrationModule() {
       {/* Header */}
       <div>
         <h2 className="text-2xl font-bold gradient-text">Registrar Venda</h2>
-        <p className="text-muted-foreground">Registre as vendas do dia para contabilizar nas metas</p>
+        <p className="text-muted-foreground">Registre suas vendas para acompanhamento de comissões (+5 pontos por registro)</p>
       </div>
 
       {!config ? (
@@ -295,12 +247,12 @@ export function SalesRegistrationModule() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Sale Registration Form */}
+          {/* Sale Registration Form - Simplified */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShoppingCart className="w-5 h-5 text-primary" />
-                Vendas do Dia
+                Registrar Venda
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -308,7 +260,7 @@ export function SalesRegistrationModule() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
-                  Valor Total (R$) *
+                  Valor da Venda (R$) *
                 </Label>
                 <Input
                   type="number"
@@ -317,7 +269,11 @@ export function SalesRegistrationModule() {
                   placeholder="0.00"
                   min="0.01"
                   step="0.01"
+                  className="text-lg"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Este valor serve para registro de comissão. O faturamento oficial é lançado no Caixa.
+                </p>
               </div>
 
               {/* Optional field: Quantity */}
@@ -335,106 +291,9 @@ export function SalesRegistrationModule() {
                 />
               </div>
 
-              <div className="space-y-3">
-                <Label className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
-                  Métodos de Pagamento *
-                </Label>
-                <p className="text-xs text-muted-foreground">Informe ao menos um método de pagamento</p>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
-                      <Receipt className="w-4 h-4 text-green-500" />
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-xs text-muted-foreground">PIX</Label>
-                      <Input
-                        type="number"
-                        value={paymentPix}
-                        onChange={(e) => setPaymentPix(e.target.value)}
-                        placeholder="0"
-                        min="0"
-                        className="h-8"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                      <CreditCard className="w-4 h-4 text-blue-500" />
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-xs text-muted-foreground">Crédito</Label>
-                      <Input
-                        type="number"
-                        value={paymentCredit}
-                        onChange={(e) => setPaymentCredit(e.target.value)}
-                        placeholder="0"
-                        min="0"
-                        className="h-8"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-                      <CreditCard className="w-4 h-4 text-purple-500" />
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-xs text-muted-foreground">Débito</Label>
-                      <Input
-                        type="number"
-                        value={paymentDebit}
-                        onChange={(e) => setPaymentDebit(e.target.value)}
-                        placeholder="0"
-                        min="0"
-                        className="h-8"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
-                      <Wallet className="w-4 h-4 text-orange-500" />
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-xs text-muted-foreground">Boleto</Label>
-                      <Input
-                        type="number"
-                        value={paymentBoleto}
-                        onChange={(e) => setPaymentBoleto(e.target.value)}
-                        placeholder="0"
-                        min="0"
-                        className="h-8"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 col-span-2">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                      <Banknote className="w-4 h-4 text-emerald-500" />
-                    </div>
-                    <div className="flex-1">
-                      <Label className="text-xs text-muted-foreground">Dinheiro</Label>
-                      <Input
-                        type="number"
-                        value={paymentCash}
-                        onChange={(e) => setPaymentCash(e.target.value)}
-                        placeholder="0"
-                        min="0"
-                        className="h-8"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <Button 
                 onClick={handleSubmitSale} 
-                disabled={isSubmitting || !totalValue || (
-                  !paymentPix && !paymentCredit && !paymentDebit && !paymentBoleto && !paymentCash
-                )}
+                disabled={isSubmitting || !totalValue || parseFloat(totalValue) <= 0}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 {isSubmitting ? (
@@ -486,96 +345,66 @@ export function SalesRegistrationModule() {
                     />
                   </PopoverContent>
                 </Popover>
-
+                
                 {/* Search */}
                 <div className="relative flex-1">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar por nome, valor, data..."
+                    placeholder="Buscar por nome, valor..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
+                    className="pl-9"
                   />
                 </div>
               </div>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
-                {filteredEvents.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Nenhum registro encontrado</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
+              {filteredEvents.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <ShoppingCart className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>Nenhum registro encontrado</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[350px]">
+                  <div className="space-y-2">
                     {filteredEvents.map((event) => (
                       <div
                         key={event.id}
-                        className="p-3 rounded-lg bg-muted/50 space-y-2"
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="default" className="text-xs bg-green-600">
-                              R$ {event.sale_value.toFixed(2)}
-                            </Badge>
-                            {event.sales_quantity && (
-                              <Badge variant="outline" className="text-xs">
-                                {event.sales_quantity} venda(s)
-                              </Badge>
-                            )}
-                            <span className="text-xs text-muted-foreground">
-                              {format(parseISO(event.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                            </span>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                            <DollarSign className="w-4 h-4 text-green-500" />
                           </div>
+                          <div>
+                            <p className="font-semibold text-green-600">
+                              R$ {event.sale_value.toFixed(2)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(parseISO(event.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {event.created_by_name}
+                          </Badge>
                           {isManager && (
                             <Button
                               variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
+                              size="sm"
                               onClick={() => handleDeleteEvent(event)}
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                             >
-                              <Trash2 className="w-3 h-3 text-destructive" />
+                              <Trash2 className="w-4 h-4" />
                             </Button>
                           )}
                         </div>
-                        
-                        {/* Payment breakdown */}
-                        <div className="flex flex-wrap gap-1">
-                          {event.payment_pix && event.payment_pix > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Receipt className="w-3 h-3 mr-1" /> {event.payment_pix} PIX
-                            </Badge>
-                          )}
-                          {event.payment_credit && event.payment_credit > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              <CreditCard className="w-3 h-3 mr-1" /> {event.payment_credit} Crédito
-                            </Badge>
-                          )}
-                          {event.payment_debit && event.payment_debit > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              <CreditCard className="w-3 h-3 mr-1" /> {event.payment_debit} Débito
-                            </Badge>
-                          )}
-                          {event.payment_boleto && event.payment_boleto > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Wallet className="w-3 h-3 mr-1" /> {event.payment_boleto} Boleto
-                            </Badge>
-                          )}
-                          {event.payment_cash && event.payment_cash > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Banknote className="w-3 h-3 mr-1" /> {event.payment_cash} Dinheiro
-                            </Badge>
-                          )}
-                        </div>
-
-                        <p className="text-xs text-muted-foreground">
-                          Por {event.created_by_name}
-                        </p>
                       </div>
                     ))}
                   </div>
-                )}
-              </ScrollArea>
+                </ScrollArea>
+              )}
             </CardContent>
           </Card>
         </div>

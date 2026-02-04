@@ -86,6 +86,11 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          payment_boleto: number | null
+          payment_cash: number | null
+          payment_credit: number | null
+          payment_debit: number | null
+          payment_pix: number | null
           register_date: string
           registered_by: string
           registered_by_name: string
@@ -94,6 +99,11 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          payment_boleto?: number | null
+          payment_cash?: number | null
+          payment_credit?: number | null
+          payment_debit?: number | null
+          payment_pix?: number | null
           register_date?: string
           registered_by: string
           registered_by_name: string
@@ -102,6 +112,11 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          payment_boleto?: number | null
+          payment_cash?: number | null
+          payment_credit?: number | null
+          payment_debit?: number | null
+          payment_pix?: number | null
           register_date?: string
           registered_by?: string
           registered_by_name?: string
@@ -493,6 +508,42 @@ export type Database = {
           },
         ]
       }
+      goals_race_history: {
+        Row: {
+          created_at: string
+          final_position: number
+          goal_target: number
+          id: string
+          perfect_checklists: number | null
+          period_month: string
+          regular_checklists: number | null
+          total_advances: number | null
+          total_retreats: number | null
+        }
+        Insert: {
+          created_at?: string
+          final_position?: number
+          goal_target?: number
+          id?: string
+          perfect_checklists?: number | null
+          period_month: string
+          regular_checklists?: number | null
+          total_advances?: number | null
+          total_retreats?: number | null
+        }
+        Update: {
+          created_at?: string
+          final_position?: number
+          goal_target?: number
+          id?: string
+          perfect_checklists?: number | null
+          period_month?: string
+          regular_checklists?: number | null
+          total_advances?: number | null
+          total_retreats?: number | null
+        }
+        Relationships: []
+      }
       occurrence_reads: {
         Row: {
           id: string
@@ -588,6 +639,54 @@ export type Database = {
           role?: string | null
           shift?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      ranking_history: {
+        Row: {
+          checklists_sent: number | null
+          created_at: string
+          critical_errors: number | null
+          delays: number | null
+          id: string
+          perfect_checklists: number | null
+          period_month: string
+          rank_position: number | null
+          sales_registered: number | null
+          total_points: number | null
+          trainings_completed: number | null
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          checklists_sent?: number | null
+          created_at?: string
+          critical_errors?: number | null
+          delays?: number | null
+          id?: string
+          perfect_checklists?: number | null
+          period_month: string
+          rank_position?: number | null
+          sales_registered?: number | null
+          total_points?: number | null
+          trainings_completed?: number | null
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          checklists_sent?: number | null
+          created_at?: string
+          critical_errors?: number | null
+          delays?: number | null
+          id?: string
+          perfect_checklists?: number | null
+          period_month?: string
+          rank_position?: number | null
+          sales_registered?: number | null
+          total_points?: number | null
+          trainings_completed?: number | null
+          user_id?: string
+          user_name?: string
         }
         Relationships: []
       }
