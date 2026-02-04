@@ -186,24 +186,7 @@ export function DailyChecklistForm({ onBack }: DailyChecklistFormProps) {
     setIsSubmitting(true);
 
     try {
-      // Check if THIS USER already submitted a checklist for today
       const today = format(new Date(), "yyyy-MM-dd");
-      const { data: existingChecklist } = await supabase
-        .from("daily_checklists")
-        .select("id")
-        .eq("checklist_date", today)
-        .eq("submitted_by", user.id)
-        .maybeSingle();
-
-      if (existingChecklist) {
-        toast({
-          title: "Checklist já enviado",
-          description: "Você já enviou seu checklist de hoje. Tente novamente amanhã após às 7h.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
 
       // Prepare checklist data (is_perfect will be calculated by the database)
       const checklistData = {
