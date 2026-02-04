@@ -158,7 +158,7 @@ export function RoutineManagement() {
             onClick={() => setShowForm(true)}
           >
             <Plus className="h-5 w-5" />
-            Enviar Checklist Diário
+            Preencher Checklist Diário
           </Button>
         )}
       </div>
