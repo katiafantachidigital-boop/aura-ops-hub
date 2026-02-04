@@ -84,6 +84,7 @@ export type Database = {
       }
       cash_register: {
         Row: {
+          clinic: string | null
           created_at: string
           id: string
           payment_boleto: number | null
@@ -97,6 +98,7 @@ export type Database = {
           total_value: number
         }
         Insert: {
+          clinic?: string | null
           created_at?: string
           id?: string
           payment_boleto?: number | null
@@ -110,6 +112,7 @@ export type Database = {
           total_value: number
         }
         Update: {
+          clinic?: string | null
           created_at?: string
           id?: string
           payment_boleto?: number | null
@@ -426,6 +429,7 @@ export type Database = {
       }
       goals_race_config: {
         Row: {
+          clinic: string | null
           created_at: string
           created_by: string | null
           current_position: number
@@ -437,6 +441,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          clinic?: string | null
           created_at?: string
           created_by?: string | null
           current_position?: number
@@ -448,6 +453,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          clinic?: string | null
           created_at?: string
           created_by?: string | null
           current_position?: number
@@ -462,6 +468,7 @@ export type Database = {
       }
       goals_race_events: {
         Row: {
+          clinic: string | null
           created_at: string
           description: string | null
           event_type: Database["public"]["Enums"]["race_event_type"]
@@ -472,6 +479,7 @@ export type Database = {
           related_user_id: string | null
         }
         Insert: {
+          clinic?: string | null
           created_at?: string
           description?: string | null
           event_type: Database["public"]["Enums"]["race_event_type"]
@@ -482,6 +490,7 @@ export type Database = {
           related_user_id?: string | null
         }
         Update: {
+          clinic?: string | null
           created_at?: string
           description?: string | null
           event_type?: Database["public"]["Enums"]["race_event_type"]
@@ -606,6 +615,7 @@ export type Database = {
       profiles: {
         Row: {
           birth_date: string | null
+          clinic: string | null
           created_at: string
           custom_role: string | null
           full_name: string | null
@@ -618,6 +628,7 @@ export type Database = {
         }
         Insert: {
           birth_date?: string | null
+          clinic?: string | null
           created_at?: string
           custom_role?: string | null
           full_name?: string | null
@@ -630,6 +641,7 @@ export type Database = {
         }
         Update: {
           birth_date?: string | null
+          clinic?: string | null
           created_at?: string
           custom_role?: string | null
           full_name?: string | null
@@ -645,6 +657,7 @@ export type Database = {
       ranking_history: {
         Row: {
           checklists_sent: number | null
+          clinic: string | null
           created_at: string
           critical_errors: number | null
           delays: number | null
@@ -660,6 +673,7 @@ export type Database = {
         }
         Insert: {
           checklists_sent?: number | null
+          clinic?: string | null
           created_at?: string
           critical_errors?: number | null
           delays?: number | null
@@ -675,6 +689,7 @@ export type Database = {
         }
         Update: {
           checklists_sent?: number | null
+          clinic?: string | null
           created_at?: string
           critical_errors?: number | null
           delays?: number | null
@@ -692,6 +707,7 @@ export type Database = {
       }
       sales_events: {
         Row: {
+          clinic: string | null
           config_id: string
           created_at: string
           created_by: string
@@ -707,6 +723,7 @@ export type Database = {
           sales_quantity: number | null
         }
         Insert: {
+          clinic?: string | null
           config_id: string
           created_at?: string
           created_by: string
@@ -722,6 +739,7 @@ export type Database = {
           sales_quantity?: number | null
         }
         Update: {
+          clinic?: string | null
           config_id?: string
           created_at?: string
           created_by?: string
@@ -748,6 +766,7 @@ export type Database = {
       }
       sales_goals_config: {
         Row: {
+          clinic: string | null
           created_at: string
           created_by: string | null
           current_value: number
@@ -761,6 +780,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          clinic?: string | null
           created_at?: string
           created_by?: string | null
           current_value?: number
@@ -774,6 +794,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          clinic?: string | null
           created_at?: string
           created_by?: string | null
           current_value?: number
@@ -1123,6 +1144,7 @@ export type Database = {
       user_scores: {
         Row: {
           checklists_sent: number
+          clinic: string | null
           created_at: string
           critical_errors: number
           delays: number
@@ -1138,6 +1160,7 @@ export type Database = {
         }
         Insert: {
           checklists_sent?: number
+          clinic?: string | null
           created_at?: string
           critical_errors?: number
           delays?: number
@@ -1153,6 +1176,7 @@ export type Database = {
         }
         Update: {
           checklists_sent?: number
+          clinic?: string | null
           created_at?: string
           critical_errors?: number
           delays?: number

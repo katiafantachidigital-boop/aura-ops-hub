@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   DollarSign, 
   Plus, 
@@ -17,7 +18,9 @@ import {
   Receipt,
   Wallet,
   Banknote,
-  Search
+  Search,
+  Trash2,
+  MapPin
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +28,17 @@ import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface CashRegisterEntry {
   id: string;
@@ -38,7 +52,13 @@ interface CashRegisterEntry {
   payment_boleto: number | null;
   payment_cash: number | null;
   created_at: string;
+  clinic: string | null;
 }
+
+const clinicLabels: Record<string, string> = {
+  capao_raso: "Capão Raso",
+  batel: "Batel",
+};
 
 export function CaixaModule() {
   const { user, profile, isManager, canSubmitChecklist } = useAuth();
@@ -46,6 +66,7 @@ export function CaixaModule() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [totalValue, setTotalValue] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   
   // Payment method states
   const [paymentPix, setPaymentPix] = useState("");
@@ -58,9 +79,13 @@ export function CaixaModule() {
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [selectedClinicTab, setSelectedClinicTab] = useState<string>("all");
 
   // Check if user can access this module
   const canAccess = isManager || canSubmitChecklist;
+
+  // Get user's clinic from profile
+  const userClinic = profile?.clinic;
 
   useEffect(() => {
     if (canAccess) {
@@ -126,6 +151,7 @@ export function CaixaModule() {
           payment_debit: debit > 0 ? debit : null,
           payment_boleto: boleto > 0 ? boleto : null,
           payment_cash: cash > 0 ? cash : null,
+          clinic: userClinic || null,
         })
         .select()
         .single();
@@ -151,6 +177,31 @@ export function CaixaModule() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!isManager) {
+      toast.error("Apenas gestoras podem excluir lançamentos");
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      const { error } = await supabase
+        .from("cash_register")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setEntries(entries.filter(e => e.id !== id));
+      toast.success("Lançamento excluído com sucesso!");
+    } catch (error) {
+      console.error("Error deleting entry:", error);
+      toast.error("Erro ao excluir lançamento");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   // Build payment method description for history
   const getPaymentDescription = (entry: CashRegisterEntry) => {
     const methods: string[] = [];
@@ -162,34 +213,152 @@ export function CaixaModule() {
     return methods.join(" • ");
   };
 
-  // Filter entries by selected month and search query
-  const filteredEntries = entries.filter(entry => {
-    const entryDate = parseISO(entry.register_date);
-    const monthStart = startOfMonth(selectedMonth);
-    const monthEnd = endOfMonth(selectedMonth);
-    
-    const isInMonth = isWithinInterval(entryDate, { start: monthStart, end: monthEnd });
-    
-    if (!isInMonth) return false;
-    
-    if (!searchQuery.trim()) return true;
-    
-    const query = searchQuery.toLowerCase();
-    const matchesName = entry.registered_by_name.toLowerCase().includes(query);
-    const matchesValue = entry.total_value.toString().includes(query);
-    const matchesDate = format(entryDate, "dd/MM/yyyy").includes(query);
-    
-    return matchesName || matchesValue || matchesDate;
-  });
+  // Filter entries based on user's clinic and selected tab
+  const getFilteredEntriesByClinic = (clinicFilter: string | null) => {
+    return entries.filter(entry => {
+      // First filter by clinic
+      if (clinicFilter && entry.clinic !== clinicFilter) return false;
+
+      // Then filter by month
+      const entryDate = parseISO(entry.register_date);
+      const monthStart = startOfMonth(selectedMonth);
+      const monthEnd = endOfMonth(selectedMonth);
+      const isInMonth = isWithinInterval(entryDate, { start: monthStart, end: monthEnd });
+      if (!isInMonth) return false;
+      
+      // Then filter by search query
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      const matchesName = entry.registered_by_name.toLowerCase().includes(query);
+      const matchesValue = entry.total_value.toString().includes(query);
+      const matchesDate = format(entryDate, "dd/MM/yyyy").includes(query);
+      
+      return matchesName || matchesValue || matchesDate;
+    });
+  };
+
+  // For non-managers, filter by their clinic
+  const getVisibleEntries = () => {
+    if (isManager) {
+      if (selectedClinicTab === "all") {
+        return getFilteredEntriesByClinic(null);
+      }
+      return getFilteredEntriesByClinic(selectedClinicTab);
+    }
+    // Supervisors can only see their clinic
+    return getFilteredEntriesByClinic(userClinic || null);
+  };
+
+  const filteredEntries = getVisibleEntries();
 
   // Calculate today's total
   const today = format(new Date(), "yyyy-MM-dd");
-  const todaysTotal = entries
-    .filter(entry => entry.register_date === today)
-    .reduce((sum, entry) => sum + entry.total_value, 0);
+  const getTodaysTotal = (clinicFilter: string | null) => {
+    return entries
+      .filter(entry => {
+        if (clinicFilter && entry.clinic !== clinicFilter) return false;
+        return entry.register_date === today;
+      })
+      .reduce((sum, entry) => sum + entry.total_value, 0);
+  };
 
   // Calculate selected month's total
-  const selectedMonthTotal = filteredEntries.reduce((sum, entry) => sum + entry.total_value, 0);
+  const getMonthTotal = (clinicFilter: string | null) => {
+    return getFilteredEntriesByClinic(clinicFilter).reduce((sum, entry) => sum + entry.total_value, 0);
+  };
+
+  const todaysTotal = isManager && selectedClinicTab === "all" 
+    ? getTodaysTotal(null) 
+    : isManager 
+      ? getTodaysTotal(selectedClinicTab) 
+      : getTodaysTotal(userClinic || null);
+
+  const selectedMonthTotal = isManager && selectedClinicTab === "all"
+    ? getMonthTotal(null)
+    : isManager
+      ? getMonthTotal(selectedClinicTab)
+      : getMonthTotal(userClinic || null);
+
+  const renderEntryCard = (entry: CashRegisterEntry) => (
+    <div
+      key={entry.id}
+      className="p-3 rounded-lg bg-muted/50 border"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
+            <DollarSign className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div>
+            <p className="font-semibold text-emerald-600">
+              R$ {entry.total_value.toFixed(2)}
+            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <CalendarIcon className="w-3 h-3" />
+              {format(new Date(entry.register_date), "dd/MM/yyyy", { locale: ptBR })}
+              <span className="mx-1">•</span>
+              <User className="w-3 h-3" />
+              {entry.registered_by_name}
+              {isManager && entry.clinic && (
+                <>
+                  <span className="mx-1">•</span>
+                  <MapPin className="w-3 h-3" />
+                  {clinicLabels[entry.clinic] || entry.clinic}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {format(new Date(entry.created_at), "HH:mm", { locale: ptBR })}
+          </span>
+          {isManager && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  disabled={deletingId === entry.id}
+                >
+                  {deletingId === entry.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Excluir lançamento?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Você está prestes a excluir o lançamento de R$ {entry.total_value.toFixed(2)} 
+                    feito por {entry.registered_by_name}. Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => handleDelete(entry.id)}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Excluir
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+      </div>
+      {/* Payment method breakdown */}
+      {getPaymentDescription(entry) && (
+        <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">
+          {getPaymentDescription(entry)}
+        </div>
+      )}
+    </div>
+  );
 
   if (!canAccess) {
     return (
@@ -221,6 +390,17 @@ export function CaixaModule() {
         <p className="text-muted-foreground">Registre o valor total das vendas do dia com detalhamento por método de pagamento</p>
       </div>
 
+      {/* Clinic Tabs for Manager */}
+      {isManager && (
+        <Tabs value={selectedClinicTab} onValueChange={setSelectedClinicTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="all">Todas</TabsTrigger>
+            <TabsTrigger value="batel">Batel</TabsTrigger>
+            <TabsTrigger value="capao_raso">Capão Raso</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card className="bg-emerald-500/10 border-emerald-500/20">
@@ -230,7 +410,10 @@ export function CaixaModule() {
                 <DollarSign className="w-5 h-5 text-emerald-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Vendas de Hoje</p>
+                <p className="text-sm text-muted-foreground">
+                  Vendas de Hoje
+                  {isManager && selectedClinicTab !== "all" && ` - ${clinicLabels[selectedClinicTab]}`}
+                </p>
                 <p className="text-xl font-bold text-emerald-600">
                   R$ {todaysTotal.toFixed(2)}
                 </p>
@@ -248,6 +431,7 @@ export function CaixaModule() {
               <div>
                 <p className="text-sm text-muted-foreground">
                   Vendas em {format(selectedMonth, "MMMM", { locale: ptBR })}
+                  {isManager && selectedClinicTab !== "all" && ` - ${clinicLabels[selectedClinicTab]}`}
                 </p>
                 <p className="text-xl font-bold text-blue-600">
                   R$ {selectedMonthTotal.toFixed(2)}
@@ -265,6 +449,11 @@ export function CaixaModule() {
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-primary" />
               Lançar Caixa
+              {userClinic && !isManager && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({clinicLabels[userClinic]})
+                </span>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -409,6 +598,11 @@ export function CaixaModule() {
             <CardTitle className="flex items-center gap-2 text-base">
               <History className="w-5 h-5" />
               Histórico de Lançamentos
+              {isManager && selectedClinicTab !== "all" && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  - {clinicLabels[selectedClinicTab]}
+                </span>
+              )}
             </CardTitle>
             
             {/* Filters */}
@@ -464,41 +658,7 @@ export function CaixaModule() {
             ) : (
               <ScrollArea className="h-[350px]">
                 <div className="space-y-2">
-                  {filteredEntries.map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="p-3 rounded-lg bg-muted/50 border"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                            <DollarSign className="w-4 h-4 text-emerald-500" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-emerald-600">
-                              R$ {entry.total_value.toFixed(2)}
-                            </p>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Calendar className="w-3 h-3" />
-                              {format(new Date(entry.register_date), "dd/MM/yyyy", { locale: ptBR })}
-                              <span className="mx-1">•</span>
-                              <User className="w-3 h-3" />
-                              {entry.registered_by_name}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(entry.created_at), "HH:mm", { locale: ptBR })}
-                        </div>
-                      </div>
-                      {/* Payment method breakdown */}
-                      {getPaymentDescription(entry) && (
-                        <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">
-                          {getPaymentDescription(entry)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {filteredEntries.map(renderEntryCard)}
                 </div>
               </ScrollArea>
             )}

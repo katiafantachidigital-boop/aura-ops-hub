@@ -12,6 +12,7 @@ interface Profile {
   birth_date: string | null;
   shift: string | null;
   custom_role: string | null;
+  clinic: string | null;
 }
 
 interface AuthContextType {
@@ -54,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         birth_date: data.birth_date,
         shift: data.shift,
         custom_role: data.custom_role,
+        clinic: data.clinic || null,
       });
     }
   };

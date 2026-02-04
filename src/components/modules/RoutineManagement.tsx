@@ -166,26 +166,7 @@ export function RoutineManagement() {
         )}
       </div>
 
-      {/* Today's checklist info (informational only, doesn't block new submissions) */}
-      {todayChecklist && (
-        <Card className="border-emerald-500/20 bg-emerald-500/5">
-          <CardContent className="flex items-center gap-4 py-6">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
-              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-emerald-700 dark:text-emerald-400">
-                Último checklist de hoje
-              </p>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Enviado por {todayChecklist.submitted_by_name} às{" "}
-                {format(new Date(todayChecklist.created_at), "HH:mm")}
-                {todayChecklist.is_perfect && " • Checklist Perfeito! ⭐"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Notification removed as requested - multiple checklists per day allowed */}
 
       {/* Access Restricted Message for non-supervisors */}
       {!canSubmitChecklist && !todayChecklist && (
