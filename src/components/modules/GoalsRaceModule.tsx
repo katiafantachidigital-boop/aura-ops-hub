@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Target, 
   Trophy, 
@@ -20,12 +21,16 @@ import {
   Sparkles,
   Loader2,
   Settings2,
-  MinusCircle
+  MinusCircle,
+  Calendar,
+  History
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { format, subMonths, startOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface RaceEvent {
   id: string;
@@ -41,6 +46,16 @@ interface GoalsRaceConfig {
   goal_target: number;
 }
 
+interface GoalsRaceHistory {
+  period_month: string;
+  final_position: number;
+  goal_target: number;
+  total_advances: number;
+  total_retreats: number;
+  perfect_checklists: number;
+  regular_checklists: number;
+}
+
 export function GoalsRaceModule() {
   const { toast } = useToast();
   const { isManager } = useAuth();
@@ -52,15 +67,66 @@ export function GoalsRaceModule() {
   const [showRaceControl, setShowRaceControl] = useState(false);
   const [racePointsToAdjust, setRacePointsToAdjust] = useState<string>("");
   const [isUpdatingRace, setIsUpdatingRace] = useState(false);
+  
+  // Month selection for historical data
+  const [selectedMonth, setSelectedMonth] = useState<string>("current");
+  const [availableMonths, setAvailableMonths] = useState<{value: string, label: string}[]>([]);
+  const [isViewingHistory, setIsViewingHistory] = useState(false);
+  const [historyData, setHistoryData] = useState<GoalsRaceHistory | null>(null);
 
   useEffect(() => {
+    generateAvailableMonths();
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (selectedMonth === "current") {
+      setIsViewingHistory(false);
+      setHistoryData(null);
+      loadData();
+    } else {
+      setIsViewingHistory(true);
+      loadHistoricalData(selectedMonth);
+    }
+  }, [selectedMonth]);
+
+  const generateAvailableMonths = () => {
+    const months = [{ value: "current", label: "Mês Atual" }];
+    
+    // Generate last 12 months
+    for (let i = 1; i <= 12; i++) {
+      const date = subMonths(new Date(), i);
+      const monthValue = format(date, "yyyy-MM-01");
+      const monthLabel = format(date, "MMMM 'de' yyyy", { locale: ptBR });
+      months.push({ value: monthValue, label: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1) });
+    }
+    
+    setAvailableMonths(months);
+  };
+
+  const loadHistoricalData = async (monthDate: string) => {
+    setLoading(true);
+    
+    const { data, error } = await supabase
+      .from('goals_race_history')
+      .select('*')
+      .eq('period_month', monthDate)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error loading historical race:', error);
+      setHistoryData(null);
+    } else {
+      setHistoryData(data);
+    }
+    
+    setLoading(false);
+  };
 
   const loadData = async () => {
     setLoading(true);
     
-    // Carregar configuração ativa
+    // Load active config
     const { data: configData } = await supabase
       .from('goals_race_config')
       .select('*')
@@ -71,7 +137,7 @@ export function GoalsRaceModule() {
       setConfig(configData);
       setNewGoalTarget(configData.goal_target.toString());
 
-      // Carregar eventos
+      // Load events
       const { data: eventsData } = await supabase
         .from('goals_race_events')
         .select('*')
@@ -85,8 +151,72 @@ export function GoalsRaceModule() {
     setLoading(false);
   };
 
-  const currentPosition = config?.current_position || 0;
-  const goalTarget = config?.goal_target || 20;
+  const handleArchiveCurrentMonth = async () => {
+    if (!isManager || !config) return;
+    
+    setIsUpdatingRace(true);
+    try {
+      const currentPeriod = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+      
+      // Calculate totals from events
+      const advances = events.filter(e => e.points > 0).reduce((acc, e) => acc + e.points, 0);
+      const retreats = Math.abs(events.filter(e => e.points < 0).reduce((acc, e) => acc + e.points, 0));
+      const perfectChecklists = events.filter(e => e.event_type === 'checklist_perfect').length;
+      const regularChecklists = events.filter(e => e.event_type === 'checklist_sent').length;
+
+      // Archive current race data
+      await supabase
+        .from('goals_race_history')
+        .upsert({
+          period_month: currentPeriod,
+          final_position: config.current_position,
+          goal_target: config.goal_target,
+          total_advances: advances,
+          total_retreats: retreats,
+          perfect_checklists: perfectChecklists,
+          regular_checklists: regularChecklists
+        }, {
+          onConflict: 'period_month'
+        });
+
+      // Reset current race position to 0
+      await supabase
+        .from('goals_race_config')
+        .update({ current_position: 0 })
+        .eq('id', config.id);
+
+      // Delete current month's events
+      await supabase
+        .from('goals_race_events')
+        .delete()
+        .eq('race_id', config.id);
+
+      toast({
+        title: "Corrida arquivada",
+        description: "A corrida do mês foi salva e zerada para o novo período",
+      });
+
+      setConfig({ ...config, current_position: 0 });
+      setEvents([]);
+      loadData();
+    } catch (error) {
+      console.error('Error archiving race:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível arquivar a corrida",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdatingRace(false);
+    }
+  };
+
+  const currentPosition = isViewingHistory 
+    ? (historyData?.final_position || 0) 
+    : (config?.current_position || 0);
+  const goalTarget = isViewingHistory 
+    ? (historyData?.goal_target || 20) 
+    : (config?.goal_target || 20);
   const progressPercentage = Math.min((currentPosition / goalTarget) * 100, 100);
   const housesRemaining = goalTarget - currentPosition;
 
@@ -282,10 +412,18 @@ export function GoalsRaceModule() {
     return labels[type] || type;
   };
 
-  const advances = events.filter(e => e.points > 0).reduce((acc, e) => acc + e.points, 0);
-  const retreats = Math.abs(events.filter(e => e.points < 0).reduce((acc, e) => acc + e.points, 0));
-  const checklistEvents = events.filter(e => e.event_type.includes('checklist') && e.points > 0).length;
-  const perfectEvents = events.filter(e => e.event_type === 'checklist_perfect').length;
+  const advances = isViewingHistory 
+    ? (historyData?.total_advances || 0) 
+    : events.filter(e => e.points > 0).reduce((acc, e) => acc + e.points, 0);
+  const retreats = isViewingHistory 
+    ? (historyData?.total_retreats || 0) 
+    : Math.abs(events.filter(e => e.points < 0).reduce((acc, e) => acc + e.points, 0));
+  const checklistEvents = isViewingHistory 
+    ? (historyData?.regular_checklists || 0) 
+    : events.filter(e => e.event_type.includes('checklist') && e.points > 0).length;
+  const perfectEvents = isViewingHistory 
+    ? (historyData?.perfect_checklists || 0) 
+    : events.filter(e => e.event_type === 'checklist_perfect').length;
 
   if (loading) {
     return (
@@ -297,7 +435,7 @@ export function GoalsRaceModule() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
+      {/* Header with Month Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Corrida da Meta</h1>
@@ -305,30 +443,72 @@ export function GoalsRaceModule() {
             Acompanhe o progresso da equipe em direção à meta
           </p>
         </div>
-        {isManager && (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => setShowRaceControl(!showRaceControl)}
-            >
-              <Settings2 className="h-4 w-4" />
-              Ajustar Casas
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => setIsConfiguring(!isConfiguring)}
-            >
-              <Settings className="h-4 w-4" />
-              Configurar Meta
-            </Button>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Selecione o mês" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableMonths.map(month => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
+          
+          {isManager && !isViewingHistory && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleArchiveCurrentMonth}
+                disabled={isUpdatingRace}
+                className="gap-2"
+              >
+                <History className="h-4 w-4" />
+                Arquivar Mês
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setShowRaceControl(!showRaceControl)}
+              >
+                <Settings2 className="h-4 w-4" />
+                Ajustar Casas
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={() => setIsConfiguring(!isConfiguring)}
+              >
+                <Settings className="h-4 w-4" />
+                Configurar Meta
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
+      {isViewingHistory && (
+        <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-700">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300">
+              <History className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                Visualizando histórico de {availableMonths.find(m => m.value === selectedMonth)?.label}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Race Position Control Panel */}
-      {showRaceControl && isManager && (
+      {showRaceControl && isManager && !isViewingHistory && (
         <Card variant="glass" className="animate-fade-in border-2 border-dashed border-primary/50">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -374,7 +554,7 @@ export function GoalsRaceModule() {
       )}
 
       {/* Configuration Panel */}
-      {isConfiguring && (
+      {isConfiguring && !isViewingHistory && (
         <Card variant="glass" className="animate-fade-in">
           <CardHeader>
             <CardTitle className="text-lg">Configurar Meta</CardTitle>
@@ -409,7 +589,10 @@ export function GoalsRaceModule() {
                 <Target className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <CardTitle>Progresso da Equipe</CardTitle>
+                <CardTitle>
+                  Progresso da Equipe
+                  {isViewingHistory && <Badge variant="secondary" className="ml-2">Histórico</Badge>}
+                </CardTitle>
                 <CardDescription>
                   Casa {currentPosition} de {goalTarget}
                 </CardDescription>
@@ -480,127 +663,144 @@ export function GoalsRaceModule() {
         </CardContent>
       </Card>
 
-      {/* Rules Card */}
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle className="text-lg">Regras da Corrida</CardTitle>
-          <CardDescription>Como a equipe avança ou recua na corrida</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Advances */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-8 w-8 rounded-lg bg-emerald/10 flex items-center justify-center">
-                  <Plus className="h-4 w-4 text-emerald" />
-                </div>
-                <h3 className="font-semibold text-foreground">Avança</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-emerald/5 border border-emerald/10">
-                  <span className="text-sm">Checklist confirmado</span>
-                  <Badge variant="outline" className="bg-emerald/10 text-emerald border-emerald/20">+1 casa</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-emerald/5 border border-emerald/10">
-                  <span className="text-sm">Checklist perfeito (100%)</span>
-                  <Badge variant="outline" className="bg-emerald/10 text-emerald border-emerald/20">+3 casas</Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* Retreats */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center">
-                  <Minus className="h-4 w-4 text-destructive" />
-                </div>
-                <h3 className="font-semibold text-foreground">Recua</h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/10">
-                  <span className="text-sm">Atraso de colaborador</span>
-                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">-1 casa</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/10">
-                  <span className="text-sm">Erro crítico</span>
-                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">-2 casas</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/10">
-                  <span className="text-sm">Checklist não enviado</span>
-                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">-2 casas</Badge>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Events History */}
-      <Card variant="glass">
-        <CardHeader>
-          <CardTitle className="text-lg">Histórico de Eventos</CardTitle>
-          <CardDescription>Últimos movimentos na corrida</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {events.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
-                <Flag className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <p className="text-muted-foreground font-medium mb-1">Nenhum evento registrado</p>
-              <p className="text-sm text-muted-foreground">
-                Os eventos aparecerão aqui quando checklists forem confirmados
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {events.map((event) => {
-                const isAdvance = event.points > 0;
-                return (
-                  <div 
-                    key={event.id}
-                    className={cn(
-                      "flex items-center gap-4 p-4 rounded-xl border transition-colors",
-                      isAdvance 
-                        ? "bg-emerald/5 border-emerald/10" 
-                        : "bg-destructive/5 border-destructive/10"
-                    )}
-                  >
-                    <div className={cn(
-                      "h-10 w-10 rounded-lg flex items-center justify-center",
-                      isAdvance ? "bg-emerald/10" : "bg-destructive/10"
-                    )}>
-                      {getEventIcon(event)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">{getEventLabel(event.event_type)}</p>
-                        <Badge 
-                          variant="outline" 
-                          className={cn(
-                            "text-xs",
-                            isAdvance 
-                              ? "bg-emerald/10 text-emerald border-emerald/20"
-                              : "bg-destructive/10 text-destructive border-destructive/20"
-                          )}
-                        >
-                          {isAdvance ? "+" : ""}{event.points} {Math.abs(event.points) === 1 ? "casa" : "casas"}
-                        </Badge>
-                      </div>
-                      {event.description && (
-                        <p className="text-sm text-muted-foreground truncate">{event.description}</p>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {new Date(event.created_at).toLocaleDateString('pt-BR')}
-                    </span>
+      {/* Rules Card - Only show for current month */}
+      {!isViewingHistory && (
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="text-lg">Regras da Corrida</CardTitle>
+            <CardDescription>Como a equipe avança ou recua na corrida</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Advances */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-8 w-8 rounded-lg bg-emerald/10 flex items-center justify-center">
+                    <Plus className="h-4 w-4 text-emerald" />
                   </div>
-                );
-              })}
+                  <h3 className="font-semibold text-foreground">Avança</h3>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-emerald/5 border border-emerald/10">
+                    <span className="text-sm">Checklist confirmado</span>
+                    <Badge variant="outline" className="bg-emerald/10 text-emerald border-emerald/20">+1 casa</Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-emerald/5 border border-emerald/10">
+                    <span className="text-sm">Checklist perfeito (100%)</span>
+                    <Badge variant="outline" className="bg-emerald/10 text-emerald border-emerald/20">+3 casas</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Retreats */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                    <Minus className="h-4 w-4 text-destructive" />
+                  </div>
+                  <h3 className="font-semibold text-foreground">Recua</h3>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+                    <span className="text-sm">Atraso de colaborador</span>
+                    <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">-1 casa</Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+                    <span className="text-sm">Erro crítico</span>
+                    <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">-2 casas</Badge>
+                  </div>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/10">
+                    <span className="text-sm">Checklist não enviado</span>
+                    <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">-2 casas</Badge>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Events History - Only show for current month */}
+      {!isViewingHistory && (
+        <Card variant="glass">
+          <CardHeader>
+            <CardTitle className="text-lg">Histórico de Eventos</CardTitle>
+            <CardDescription>Últimos movimentos na corrida</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {events.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+                  <Flag className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium mb-1">Nenhum evento registrado</p>
+                <p className="text-sm text-muted-foreground">
+                  Os eventos aparecerão aqui quando checklists forem confirmados
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {events.map((event) => {
+                  const isAdvance = event.points > 0;
+                  return (
+                    <div 
+                      key={event.id}
+                      className={cn(
+                        "flex items-center gap-4 p-4 rounded-xl border transition-colors",
+                        isAdvance 
+                          ? "bg-emerald/5 border-emerald/10" 
+                          : "bg-destructive/5 border-destructive/10"
+                      )}
+                    >
+                      <div className={cn(
+                        "h-10 w-10 rounded-lg flex items-center justify-center",
+                        isAdvance ? "bg-emerald/10" : "bg-destructive/10"
+                      )}>
+                        {getEventIcon(event)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground">{getEventLabel(event.event_type)}</p>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-xs",
+                              isAdvance 
+                                ? "bg-emerald/10 text-emerald border-emerald/20"
+                                : "bg-destructive/10 text-destructive border-destructive/20"
+                            )}
+                          >
+                            {isAdvance ? "+" : ""}{event.points} {Math.abs(event.points) === 1 ? "casa" : "casas"}
+                          </Badge>
+                        </div>
+                        {event.description && (
+                          <p className="text-sm text-muted-foreground truncate">{event.description}</p>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0">
+                        {new Date(event.created_at).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Historical Summary - Only show when viewing history */}
+      {isViewingHistory && !historyData && (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <History className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground font-medium">Nenhum registro encontrado para este mês</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              O histórico deste mês pode não ter sido arquivado
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
