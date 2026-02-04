@@ -5,9 +5,19 @@ import {
   Users,
   Star,
   Loader2,
-  Crown
+  Crown,
+  MapPin
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Profile {
   id: string;
@@ -17,11 +27,19 @@ interface Profile {
   shift: string | null;
   is_supervisor: boolean | null;
   profile_completed: boolean;
+  clinic: string | null;
 }
+
+const clinicLabels: Record<string, string> = {
+  capao_raso: "Capão Raso",
+  batel: "Batel",
+};
 
 export function TeamModule() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingClinic, setUpdatingClinic] = useState<string | null>(null);
+  const { isManager } = useAuth();
 
   useEffect(() => {
     loadProfiles();
@@ -38,6 +56,31 @@ export function TeamModule() {
 
     setProfiles(data || []);
     setLoading(false);
+  };
+
+  const handleClinicChange = async (profileId: string, clinic: string) => {
+    if (!isManager) return;
+    
+    setUpdatingClinic(profileId);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ clinic: clinic === "none" ? null : clinic })
+        .eq('id', profileId);
+
+      if (error) throw error;
+
+      setProfiles(profiles.map(p => 
+        p.id === profileId ? { ...p, clinic: clinic === "none" ? null : clinic } : p
+      ));
+      
+      toast.success("Clínica atualizada com sucesso!");
+    } catch (error) {
+      console.error("Error updating clinic:", error);
+      toast.error("Erro ao atualizar clínica");
+    } finally {
+      setUpdatingClinic(null);
+    }
   };
 
   const getInitials = (name: string | null) => {
@@ -133,6 +176,40 @@ export function TeamModule() {
                     <span className="text-sm text-muted-foreground">{getShiftLabel(member.shift)}</span>
                   </div>
                 </div>
+
+                {/* Clinic Selector - Only visible to manager */}
+                {isManager && (
+                  <div className="space-y-2 pt-2 border-t">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      <span>Clínica</span>
+                    </div>
+                    <Select
+                      value={member.clinic || "none"}
+                      onValueChange={(value) => handleClinicChange(member.id, value)}
+                      disabled={updatingClinic === member.id}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione a clínica" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Não definida</SelectItem>
+                        <SelectItem value="capao_raso">Capão Raso</SelectItem>
+                        <SelectItem value="batel">Batel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* Show clinic badge for non-managers */}
+                {!isManager && member.clinic && (
+                  <div className="pt-2 border-t">
+                    <Badge variant="outline" className="gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {clinicLabels[member.clinic] || member.clinic}
+                    </Badge>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
