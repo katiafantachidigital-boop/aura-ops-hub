@@ -221,17 +221,15 @@ const RankingModule: React.FC = () => {
     setLoading(false);
   };
 
-  const handleArchiveCurrentMonth = async () => {
+  const handleArchiveMonth = async (monthToArchive: string) => {
     if (!isManager) return;
     
     setIsUpdating(true);
     try {
-      const currentPeriod = format(startOfMonth(new Date()), 'yyyy-MM-dd');
-      
       // Get current ranking data
       const rankedCollaborators = [...collaborators].sort((a, b) => b.points - a.points);
       
-      // Archive each collaborator's ranking
+      // Archive each collaborator's ranking for the selected month
       for (let i = 0; i < rankedCollaborators.length; i++) {
         const collab = rankedCollaborators[i];
         await supabase
@@ -239,7 +237,7 @@ const RankingModule: React.FC = () => {
           .upsert({
             user_id: collab.id,
             user_name: collab.name,
-            period_month: currentPeriod,
+            period_month: monthToArchive,
             checklists_sent: collab.checklistsSent,
             perfect_checklists: collab.perfectChecklists,
             trainings_completed: collab.trainingsCompleted,
@@ -254,14 +252,16 @@ const RankingModule: React.FC = () => {
       }
 
       // Reset current month scores
+      const currentPeriod = format(startOfMonth(new Date()), 'yyyy-MM-dd');
       await supabase
         .from('user_scores')
         .delete()
         .eq('period_start', currentPeriod);
 
+      const monthLabel = format(new Date(monthToArchive), "MMMM 'de' yyyy", { locale: ptBR });
       toast({
         title: "Ranking arquivado",
-        description: "O ranking do mês foi salvo e zerado para o novo período",
+        description: `O ranking de ${monthLabel} foi salvo e zerado para o novo período`,
       });
 
       loadData();
@@ -275,6 +275,13 @@ const RankingModule: React.FC = () => {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  // Archive current month's data as the previous month (January if we're in February)
+  const handleArchivePreviousMonth = async () => {
+    const previousMonth = subMonths(new Date(), 1);
+    const previousMonthDate = format(startOfMonth(previousMonth), 'yyyy-MM-dd');
+    await handleArchiveMonth(previousMonthDate);
   };
 
   const handleAdjustPoints = async (userId: string, amount: number) => {
@@ -406,12 +413,12 @@ const RankingModule: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleArchiveCurrentMonth}
+              onClick={handleArchivePreviousMonth}
               disabled={isUpdating}
               className="gap-2"
             >
               <History className="h-4 w-4" />
-              Arquivar Mês
+              Arquivar {format(subMonths(new Date(), 1), "MMMM", { locale: ptBR })}
             </Button>
           )}
         </div>
