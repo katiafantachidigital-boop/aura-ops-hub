@@ -124,8 +124,8 @@ export function RoutineManagement() {
     return setHours(tomorrow, 7);
   };
 
-  // Can submit: has permission AND no checklist today AND after 7 AM
-  const canSubmitNow = canSubmitChecklist && !todayChecklist && isAfterSevenAM();
+  // Can submit: has permission AND after 7 AM (multiple checklists allowed per day)
+  const canSubmitNow = canSubmitChecklist && isAfterSevenAM();
 
   if (showHistory) {
     return <ChecklistHistory onBack={() => { setShowHistory(false); loadChecklists(); }} />;
@@ -163,7 +163,7 @@ export function RoutineManagement() {
         )}
       </div>
 
-      {/* Today's checklist status */}
+      {/* Today's checklist info (informational only, doesn't block new submissions) */}
       {todayChecklist && (
         <Card className="border-emerald-500/20 bg-emerald-500/5">
           <CardContent className="flex items-center gap-4 py-6">
@@ -172,7 +172,7 @@ export function RoutineManagement() {
             </div>
             <div className="flex-1">
               <p className="font-medium text-emerald-700 dark:text-emerald-400">
-                Checklist de hoje já foi enviado!
+                Último checklist de hoje
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Enviado por {todayChecklist.submitted_by_name} às{" "}
@@ -180,12 +180,6 @@ export function RoutineManagement() {
                 {todayChecklist.is_perfect && " • Checklist Perfeito! ⭐"}
               </p>
             </div>
-            {!isAfterSevenAM() && (
-              <Badge variant="outline" className="gap-1">
-                <Lock className="h-3 w-3" />
-                Liberado às 7h
-              </Badge>
-            )}
           </CardContent>
         </Card>
       )}
