@@ -4,23 +4,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { 
   DollarSign, 
   Plus, 
   Loader2,
   History,
-  Calendar,
+  CalendarIcon,
   User,
   CreditCard,
   Receipt,
   Wallet,
-  Banknote
+  Banknote,
+  Search
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface CashRegisterEntry {
   id: string;
@@ -49,6 +53,11 @@ export function CaixaModule() {
   const [paymentDebit, setPaymentDebit] = useState("");
   const [paymentBoleto, setPaymentBoleto] = useState("");
   const [paymentCash, setPaymentCash] = useState("");
+
+  // Filter states
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   // Check if user can access this module
   const canAccess = isManager || canSubmitChecklist;
@@ -153,17 +162,34 @@ export function CaixaModule() {
     return methods.join(" • ");
   };
 
+  // Filter entries by selected month and search query
+  const filteredEntries = entries.filter(entry => {
+    const entryDate = parseISO(entry.register_date);
+    const monthStart = startOfMonth(selectedMonth);
+    const monthEnd = endOfMonth(selectedMonth);
+    
+    const isInMonth = isWithinInterval(entryDate, { start: monthStart, end: monthEnd });
+    
+    if (!isInMonth) return false;
+    
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const matchesName = entry.registered_by_name.toLowerCase().includes(query);
+    const matchesValue = entry.total_value.toString().includes(query);
+    const matchesDate = format(entryDate, "dd/MM/yyyy").includes(query);
+    
+    return matchesName || matchesValue || matchesDate;
+  });
+
   // Calculate today's total
   const today = format(new Date(), "yyyy-MM-dd");
   const todaysTotal = entries
     .filter(entry => entry.register_date === today)
     .reduce((sum, entry) => sum + entry.total_value, 0);
 
-  // Calculate current month's total
-  const currentMonth = format(new Date(), "yyyy-MM");
-  const monthlyTotal = entries
-    .filter(entry => entry.register_date.startsWith(currentMonth))
-    .reduce((sum, entry) => sum + entry.total_value, 0);
+  // Calculate selected month's total
+  const selectedMonthTotal = filteredEntries.reduce((sum, entry) => sum + entry.total_value, 0);
 
   if (!canAccess) {
     return (
@@ -217,12 +243,14 @@ export function CaixaModule() {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-blue-500" />
+                <CalendarIcon className="w-5 h-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Vendas do Mês</p>
+                <p className="text-sm text-muted-foreground">
+                  Vendas em {format(selectedMonth, "MMMM", { locale: ptBR })}
+                </p>
                 <p className="text-xl font-bold text-blue-600">
-                  R$ {monthlyTotal.toFixed(2)}
+                  R$ {selectedMonthTotal.toFixed(2)}
                 </p>
               </div>
             </div>
@@ -377,22 +405,66 @@ export function CaixaModule() {
 
         {/* History */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
               <History className="w-5 h-5" />
               Histórico de Lançamentos
             </CardTitle>
+            
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-2 mt-3">
+              {/* Month picker */}
+              <Popover open={showMonthPicker} onOpenChange={setShowMonthPicker}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "justify-start text-left font-normal",
+                      !selectedMonth && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(selectedMonth, "MMMM yyyy", { locale: ptBR })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedMonth}
+                    onSelect={(date) => {
+                      if (date) {
+                        setSelectedMonth(date);
+                        setShowMonthPicker(false);
+                      }
+                    }}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, valor..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            {entries.length === 0 ? (
+            {filteredEntries.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>Nenhum lançamento registrado</p>
               </div>
             ) : (
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-3">
-                  {entries.map((entry) => (
+              <ScrollArea className="h-[350px]">
+                <div className="space-y-2">
+                  {filteredEntries.map((entry) => (
                     <div
                       key={entry.id}
                       className="p-3 rounded-lg bg-muted/50 border"
