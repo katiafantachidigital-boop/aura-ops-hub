@@ -14,6 +14,7 @@ import {
   User,
   Star,
   Megaphone,
+  Wallet,
   AlertTriangle,
   DollarSign
 } from "lucide-react";
@@ -42,6 +43,8 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
   const operationItems = [
     // Only show checklist for manager or supervisor
     ...(canSubmitChecklist ? [{ id: "checklist", label: "Checklist Diário", icon: ClipboardCheck }] : []),
+    // Only show caixa for manager or supervisor
+    ...(canSubmitChecklist ? [{ id: "caixa", label: "Caixa", icon: Wallet }] : []),
     { id: "goals-race", label: "Pontuação", icon: Target },
     { id: "sales-goals", label: "Metas de Vendas", icon: DollarSign },
     { id: "sales-registration", label: "Registrar Venda", icon: DollarSign },

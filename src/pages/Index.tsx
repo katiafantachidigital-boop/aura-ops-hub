@@ -18,6 +18,7 @@ import { AnnouncementsModule } from "@/components/modules/AnnouncementsModule";
 import { OccurrencesModule } from "@/components/modules/OccurrencesModule";
 import { SalesGoalsModule } from "@/components/modules/SalesGoalsModule";
 import { SalesRegistrationModule } from "@/components/modules/SalesRegistrationModule";
+import { CaixaModule } from "@/components/modules/CaixaModule";
 
 const ChecklistHistoryModule = () => (
   <div className="text-center py-12">
@@ -29,6 +30,7 @@ const ChecklistHistoryModule = () => (
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
   checklist: { title: "Checklist Diário", subtitle: "Avaliação diária da equipe" },
+  caixa: { title: "Caixa", subtitle: "Registre o valor total das vendas do dia" },
   "goals-race": { title: "Pontuação", subtitle: "Acompanhe o progresso da equipe" },
   "sales-goals": { title: "Metas de Vendas", subtitle: "Acompanhe as vendas da equipe" },
   "sales-registration": { title: "Registrar Venda", subtitle: "Registre vendas realizadas" },
@@ -37,7 +39,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   announcements: { title: "Comunicados", subtitle: "Avisos e recados importantes" },
   occurrences: { title: "Ocorrências", subtitle: "Registre e acompanhe ocorrências" },
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
-  supervisor: { title: "Supervisor da Semana", subtitle: "Gestão da supervisão semanal" },
+  supervisor: { title: "Supervisora", subtitle: "Gestão da supervisão" },
   "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
   "feedback-history": { title: "Histórico de Avaliações", subtitle: "Avaliações dos clientes" },
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
@@ -74,6 +76,8 @@ const Index = () => {
         return <Dashboard />;
       case "checklist":
         return <RoutineManagement />;
+      case "caixa":
+        return <CaixaModule />;
       case "goals-race":
         return <GoalsRaceModule />;
       case "sales-goals":
