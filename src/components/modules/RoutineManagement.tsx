@@ -55,19 +55,22 @@ export function RoutineManagement() {
   const [loading, setLoading] = useState(true);
   const { canSubmitChecklist, isManager } = useAuth();
 
-  const today = new Date();
-
   useEffect(() => {
     loadChecklists();
   }, []);
 
   const loadChecklists = async () => {
     try {
+      // IMPORTANT: always compute "today" at call time so the screen doesn't get stuck on yesterday
+      const now = new Date();
+
       // Check today's checklist
       const { data: todayData, error: todayError } = await supabase
         .from("daily_checklists")
         .select("id, checklist_date, submitted_by_name, created_at, is_perfect")
-        .eq("checklist_date", format(today, "yyyy-MM-dd"))
+        .eq("checklist_date", format(now, "yyyy-MM-dd"))
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (todayError) throw todayError;
@@ -84,8 +87,8 @@ export function RoutineManagement() {
       setRecentChecklists(recentData || []);
 
       // Load monthly stats
-      const monthStart = format(startOfMonth(today), "yyyy-MM-dd");
-      const monthEnd = format(endOfMonth(today), "yyyy-MM-dd");
+      const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
+      const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
       
       const { data: monthlyData, error: monthlyError } = await supabase
         .from("daily_checklists")
@@ -120,7 +123,7 @@ export function RoutineManagement() {
 
   // Calculate next available time (7 AM tomorrow)
   const getNextAvailableTime = () => {
-    const tomorrow = addDays(today, 1);
+    const tomorrow = addDays(new Date(), 1);
     return setHours(tomorrow, 7);
   };
 
