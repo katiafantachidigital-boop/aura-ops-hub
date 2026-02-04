@@ -82,6 +82,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_register: {
+        Row: {
+          created_at: string
+          id: string
+          register_date: string
+          registered_by: string
+          registered_by_name: string
+          total_value: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          register_date?: string
+          registered_by: string
+          registered_by_name: string
+          total_value: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          register_date?: string
+          registered_by?: string
+          registered_by_name?: string
+          total_value?: number
+        }
+        Relationships: []
+      }
       checklist_occurrences: {
         Row: {
           action_taken: string | null

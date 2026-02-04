@@ -150,7 +150,7 @@ export function SalesRegistrationModule() {
           ? paymentDetails.join(", ")
           : null;
 
-      // Add sale event
+      // Add sale event (just for tracking individual sales, not affecting dashboard)
       const { data: eventData, error: eventError } = await supabase
         .from("sales_events")
         .insert({
@@ -171,14 +171,7 @@ export function SalesRegistrationModule() {
 
       if (eventError) throw eventError;
 
-      // Update current_value
-      const newValue = config.current_value + value;
-      const { error: updateError } = await supabase
-        .from("sales_goals_config")
-        .update({ current_value: newValue })
-        .eq("id", config.id);
-
-      if (updateError) throw updateError;
+      // NOTE: We no longer update current_value here - that is done via the Caixa module
 
       // Add points to user score (5 points per sale registration)
       if (user?.id) {
@@ -213,7 +206,6 @@ export function SalesRegistrationModule() {
         }
       }
 
-      setConfig({ ...config, current_value: newValue });
       setEvents([eventData, ...events]);
       
       // Reset form
@@ -245,16 +237,7 @@ export function SalesRegistrationModule() {
 
       if (deleteError) throw deleteError;
 
-      // Update current_value
-      const newValue = Math.max(0, config.current_value - event.sale_value);
-      const { error: updateError } = await supabase
-        .from("sales_goals_config")
-        .update({ current_value: newValue })
-        .eq("id", config.id);
-
-      if (updateError) throw updateError;
-
-      setConfig({ ...config, current_value: newValue });
+      // NOTE: We no longer update current_value - dashboard uses cash_register
       setEvents(events.filter(e => e.id !== event.id));
       toast.success("Registro removido");
     } catch (error) {

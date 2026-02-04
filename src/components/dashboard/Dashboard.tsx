@@ -30,26 +30,16 @@ export function Dashboard() {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-      // Get active sales config and calculate monthly revenue from sales events
-      const { data: salesConfig } = await supabase
-        .from("sales_goals_config")
-        .select("id, current_value")
-        .eq("is_active", true)
-        .maybeSingle();
+      // Get monthly revenue from cash_register (the official source of truth)
+      const { data: cashEntries } = await supabase
+        .from("cash_register")
+        .select("total_value, register_date")
+        .gte("register_date", startOfMonth.toISOString().split('T')[0])
+        .lte("register_date", endOfMonth.toISOString().split('T')[0]);
 
       let monthlyRevenue = 0;
-      if (salesConfig) {
-        // Get sales events for current month
-        const { data: salesEvents } = await supabase
-          .from("sales_events")
-          .select("sale_value")
-          .eq("config_id", salesConfig.id)
-          .gte("created_at", startOfMonth.toISOString())
-          .lte("created_at", endOfMonth.toISOString());
-
-        if (salesEvents) {
-          monthlyRevenue = salesEvents.reduce((sum, event) => sum + (event.sale_value > 0 ? event.sale_value : 0), 0);
-        }
+      if (cashEntries) {
+        monthlyRevenue = cashEntries.reduce((sum, entry) => sum + entry.total_value, 0);
       }
 
       // Get total active clients (all clients in the system)
