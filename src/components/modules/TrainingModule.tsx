@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUnreadTrainings } from "@/hooks/useUnreadTrainings";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,7 @@ const MANAGER_EMAIL = "gerenteipfp@gmail.com";
 
 export function TrainingModule() {
   const { user, profile } = useAuth();
+  const { markAsRead: markTrainingAsRead } = useUnreadTrainings();
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [modules, setModules] = useState<Record<string, TrainingModule[]>>({});
   const [contents, setContents] = useState<Record<string, TrainingContent[]>>({});
@@ -142,6 +144,15 @@ export function TrainingModule() {
     fetchTrainings();
     fetchUserProgress();
   }, [user]);
+
+  // Mark all trainings as read when user views the module
+  useEffect(() => {
+    if (trainings.length > 0 && user) {
+      trainings.forEach(training => {
+        markTrainingAsRead(training.id);
+      });
+    }
+  }, [trainings, user]);
 
   const checkIfManager = async () => {
     if (!user) return;

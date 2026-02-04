@@ -466,27 +466,62 @@ export type Database = {
           },
         ]
       }
+      occurrence_reads: {
+        Row: {
+          id: string
+          occurrence_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          occurrence_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          occurrence_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "occurrence_reads_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "occurrences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       occurrences: {
         Row: {
           content: string
           created_at: string
           id: string
+          target_profiles: string[] | null
           user_id: string
           user_name: string
+          visibility: string
         }
         Insert: {
           content: string
           created_at?: string
           id?: string
+          target_profiles?: string[] | null
           user_id: string
           user_name: string
+          visibility?: string
         }
         Update: {
           content?: string
           created_at?: string
           id?: string
+          target_profiles?: string[] | null
           user_id?: string
           user_name?: string
+          visibility?: string
         }
         Relationships: []
       }
@@ -828,6 +863,35 @@ export type Database = {
           },
         ]
       }
+      training_reads: {
+        Row: {
+          id: string
+          read_at: string
+          training_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          read_at?: string
+          training_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          read_at?: string
+          training_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_reads_training_id_fkey"
+            columns: ["training_id"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_user_answers: {
         Row: {
           answered_at: string
@@ -939,6 +1003,7 @@ export type Database = {
           id: string
           perfect_checklists: number
           period_start: string
+          sales_registered: number
           supervisor_weeks: number
           total_points: number | null
           trainings_completed: number
@@ -953,6 +1018,7 @@ export type Database = {
           id?: string
           perfect_checklists?: number
           period_start?: string
+          sales_registered?: number
           supervisor_weeks?: number
           total_points?: number | null
           trainings_completed?: number
@@ -967,6 +1033,7 @@ export type Database = {
           id?: string
           perfect_checklists?: number
           period_start?: string
+          sales_registered?: number
           supervisor_weeks?: number
           total_points?: number | null
           trainings_completed?: number
