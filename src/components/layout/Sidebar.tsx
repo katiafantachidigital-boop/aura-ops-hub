@@ -16,7 +16,8 @@ import {
   Megaphone,
   Wallet,
   AlertTriangle,
-  DollarSign
+  DollarSign,
+  Sheet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
     { id: "training", label: "Treinamentos", icon: GraduationCap, badge: unreadTrainings },
     { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadAnnouncements },
     { id: "occurrences", label: "Ocorrências", icon: AlertTriangle, badge: unreadOccurrences },
+    { id: "spreadsheets", label: "Planilhas", icon: Sheet },
   ];
 
   // Management items only for manager
