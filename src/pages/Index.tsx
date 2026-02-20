@@ -19,6 +19,7 @@ import { OccurrencesModule } from "@/components/modules/OccurrencesModule";
 import { SalesGoalsModule } from "@/components/modules/SalesGoalsModule";
 import { SalesRegistrationModule } from "@/components/modules/SalesRegistrationModule";
 import { CaixaModule } from "@/components/modules/CaixaModule";
+import { SpreadsheetModule } from "@/components/modules/SpreadsheetModule";
 
 const ChecklistHistoryModule = () => (
   <div className="text-center py-12">
@@ -43,6 +44,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
   "feedback-history": { title: "Histórico de Avaliações", subtitle: "Avaliações dos clientes" },
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
+  spreadsheets: { title: "Planilhas", subtitle: "Crie e gerencie planilhas" },
   profile: { title: "Meu Perfil", subtitle: "Seu perfil profissional" },
 };
 
@@ -92,6 +94,8 @@ const Index = () => {
         return <AnnouncementsModule />;
       case "occurrences":
         return <OccurrencesModule />;
+      case "spreadsheets":
+        return <SpreadsheetModule />;
       case "team":
         return isManager ? <TeamModule /> : <Dashboard />;
       case "supervisor":

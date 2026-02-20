@@ -809,6 +809,39 @@ export type Database = {
         }
         Relationships: []
       }
+      spreadsheets: {
+        Row: {
+          column_widths: Json | null
+          created_at: string
+          created_by: string
+          created_by_name: string
+          data: Json
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          column_widths?: Json | null
+          created_at?: string
+          created_by: string
+          created_by_name: string
+          data?: Json
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          column_widths?: Json | null
+          created_at?: string
+          created_by?: string
+          created_by_name?: string
+          data?: Json
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       training_contents: {
         Row: {
           content_text: string | null
