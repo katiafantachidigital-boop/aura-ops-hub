@@ -162,7 +162,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
             {operationItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeItem === item.id;
-              const badgeCount = 'badge' in item ? item.badge : 0;
+              const badgeCount = isActive ? 0 : ('badge' in item ? item.badge : 0);
               return (
                 <button
                   key={item.id}
