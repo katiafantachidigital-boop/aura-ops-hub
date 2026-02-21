@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Save, Trash2, ArrowLeft, Edit2, PlusCircle, MinusCircle } from "lucide-react";
+import { Plus, Save, Trash2, ArrowLeft, Edit2, PlusCircle, MinusCircle, FileSpreadsheet } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,16 @@ interface Spreadsheet {
   updated_at: string;
 }
 
+const ensureValidData = (data: unknown): string[][] => {
+  if (!Array.isArray(data) || data.length === 0) {
+    return Array.from({ length: 10 }, () => Array.from({ length: 6 }, () => ""));
+  }
+  return data.map((row: unknown) => {
+    if (!Array.isArray(row)) return [""];
+    return row.map((cell: unknown) => (typeof cell === "string" ? cell : String(cell ?? "")));
+  });
+};
+
 export function SpreadsheetModule() {
   const { user, profile, isManager } = useAuth();
   const [spreadsheets, setSpreadsheets] = useState<Spreadsheet[]>([]);
@@ -31,6 +41,7 @@ export function SpreadsheetModule() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [editingTitleMode, setEditingTitleMode] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
   const canEdit = (sheet: Spreadsheet) => {
@@ -39,18 +50,24 @@ export function SpreadsheetModule() {
   };
 
   const fetchSpreadsheets = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("spreadsheets")
-      .select("*")
-      .order("updated_at", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("spreadsheets")
+        .select("*")
+        .order("updated_at", { ascending: false });
 
-    if (error) {
-      toast({ title: "Erro ao carregar planilhas", description: error.message, variant: "destructive" });
-    } else {
-      setSpreadsheets((data || []).map((s: any) => ({
-        ...s,
-        data: Array.isArray(s.data) ? s.data : [[""]],
-      })));
+      if (error) {
+        console.error("Fetch error:", error);
+        toast({ title: "Erro ao carregar planilhas", description: error.message, variant: "destructive" });
+      } else {
+        setSpreadsheets((data || []).map((s: any) => ({
+          ...s,
+          data: ensureValidData(s.data),
+        })));
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+      toast({ title: "Erro inesperado", variant: "destructive" });
     }
     setLoading(false);
   }, []);
@@ -60,96 +77,125 @@ export function SpreadsheetModule() {
   }, [fetchSpreadsheets]);
 
   const createSpreadsheet = async () => {
-    if (!user || !profile) return;
+    if (!user || !profile) {
+      toast({ title: "Erro", description: "Faça login para criar planilhas.", variant: "destructive" });
+      return;
+    }
     const title = newTitle.trim() || "Nova Planilha";
     const initialData = Array.from({ length: 10 }, () => Array.from({ length: 6 }, () => ""));
 
-    const { data, error } = await supabase
-      .from("spreadsheets")
-      .insert({
-        title,
-        data: initialData as any,
-        created_by: user.id,
-        created_by_name: profile.full_name || "Usuário",
-      })
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("spreadsheets")
+        .insert({
+          title,
+          data: initialData as any,
+          created_by: user.id,
+          created_by_name: profile.full_name || "Usuário",
+        })
+        .select()
+        .maybeSingle();
 
-    if (error) {
-      toast({ title: "Erro ao criar planilha", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Planilha criada!" });
-      setNewTitle("");
-      setCreateDialogOpen(false);
-      fetchSpreadsheets();
-      if (data) {
+      if (error) {
+        console.error("Create error:", error);
+        toast({ title: "Erro ao criar planilha", description: error.message, variant: "destructive" });
+      } else if (data) {
+        toast({ title: "Planilha criada com sucesso!" });
+        setNewTitle("");
+        setCreateDialogOpen(false);
+        await fetchSpreadsheets();
         openSheet({ ...data, data: initialData });
       }
+    } catch (err) {
+      console.error("Unexpected create error:", err);
+      toast({ title: "Erro inesperado ao criar", variant: "destructive" });
     }
   };
 
   const openSheet = (sheet: Spreadsheet) => {
-    setSelectedSheet(sheet);
-    setEditingData(sheet.data.map(row => [...row]));
+    const validData = ensureValidData(sheet.data);
+    setSelectedSheet({ ...sheet, data: validData });
+    setEditingData(validData.map(row => [...row]));
     setEditingTitle(sheet.title);
+    setHasUnsavedChanges(false);
   };
 
   const saveSheet = async () => {
     if (!selectedSheet) return;
     setSaving(true);
 
-    const { error } = await supabase
-      .from("spreadsheets")
-      .update({
-        title: editingTitle,
-        data: editingData as any,
-      })
-      .eq("id", selectedSheet.id);
+    try {
+      const { error } = await supabase
+        .from("spreadsheets")
+        .update({
+          title: editingTitle,
+          data: editingData as any,
+        })
+        .eq("id", selectedSheet.id);
 
-    setSaving(false);
-    if (error) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Planilha salva!" });
-      setSelectedSheet({ ...selectedSheet, title: editingTitle, data: editingData });
-      fetchSpreadsheets();
+      if (error) {
+        console.error("Save error:", error);
+        toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Planilha salva com sucesso!" });
+        setSelectedSheet({ ...selectedSheet, title: editingTitle, data: editingData });
+        setHasUnsavedChanges(false);
+        fetchSpreadsheets();
+      }
+    } catch (err) {
+      console.error("Unexpected save error:", err);
+      toast({ title: "Erro inesperado ao salvar", variant: "destructive" });
     }
+    setSaving(false);
   };
 
   const deleteSheet = async (id: string) => {
-    const { error } = await supabase.from("spreadsheets").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Planilha excluída!" });
-      if (selectedSheet?.id === id) setSelectedSheet(null);
-      fetchSpreadsheets();
+    try {
+      const { error } = await supabase.from("spreadsheets").delete().eq("id", id);
+      if (error) {
+        toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Planilha excluída!" });
+        if (selectedSheet?.id === id) setSelectedSheet(null);
+        fetchSpreadsheets();
+      }
+    } catch (err) {
+      toast({ title: "Erro inesperado ao excluir", variant: "destructive" });
     }
   };
 
   const updateCell = (row: number, col: number, value: string) => {
-    const newData = editingData.map(r => [...r]);
-    newData[row][col] = value;
-    setEditingData(newData);
+    setEditingData(prev => {
+      const newData = prev.map(r => [...r]);
+      if (newData[row] && col < newData[row].length) {
+        newData[row][col] = value;
+      }
+      return newData;
+    });
+    setHasUnsavedChanges(true);
   };
 
   const addRow = () => {
     const cols = editingData[0]?.length || 6;
-    setEditingData([...editingData, Array(cols).fill("")]);
+    setEditingData(prev => [...prev, Array(cols).fill("")]);
+    setHasUnsavedChanges(true);
   };
 
   const removeRow = () => {
     if (editingData.length <= 1) return;
-    setEditingData(editingData.slice(0, -1));
+    setEditingData(prev => prev.slice(0, -1));
+    setHasUnsavedChanges(true);
   };
 
   const addColumn = () => {
-    setEditingData(editingData.map(row => [...row, ""]));
+    setEditingData(prev => prev.map(row => [...row, ""]));
+    setHasUnsavedChanges(true);
   };
 
   const removeColumn = () => {
     if ((editingData[0]?.length || 0) <= 1) return;
-    setEditingData(editingData.map(row => row.slice(0, -1)));
+    setEditingData(prev => prev.map(row => row.slice(0, -1)));
+    setHasUnsavedChanges(true);
   };
 
   const getColumnLabel = (index: number): string => {
@@ -162,6 +208,14 @@ export function SpreadsheetModule() {
     return label;
   };
 
+  const handleBack = () => {
+    if (hasUnsavedChanges) {
+      if (!confirm("Você tem alterações não salvas. Deseja sair sem salvar?")) return;
+    }
+    setSelectedSheet(null);
+    setHasUnsavedChanges(false);
+  };
+
   // Spreadsheet editor view
   if (selectedSheet) {
     const editable = canEdit(selectedSheet);
@@ -169,14 +223,14 @@ export function SpreadsheetModule() {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setSelectedSheet(null)}>
+          <Button variant="outline" size="sm" onClick={handleBack}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
           </Button>
 
           {editingTitleMode && editable ? (
             <Input
               value={editingTitle}
-              onChange={(e) => setEditingTitle(e.target.value)}
+              onChange={(e) => { setEditingTitle(e.target.value); setHasUnsavedChanges(true); }}
               onBlur={() => setEditingTitleMode(false)}
               onKeyDown={(e) => e.key === "Enter" && setEditingTitleMode(false)}
               className="max-w-xs h-9"
@@ -197,7 +251,10 @@ export function SpreadsheetModule() {
           </span>
 
           {editable && (
-            <div className="ml-auto flex gap-2">
+            <div className="ml-auto flex gap-2 items-center">
+              {hasUnsavedChanges && (
+                <span className="text-xs text-destructive font-medium">● Não salvo</span>
+              )}
               <Button size="sm" onClick={saveSheet} disabled={saving}>
                 <Save className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Salvar"}
               </Button>
@@ -232,7 +289,7 @@ export function SpreadsheetModule() {
                 {editingData[0]?.map((_, colIdx) => (
                   <th
                     key={colIdx}
-                    className="bg-muted text-muted-foreground text-xs font-medium px-2 py-1.5 border border-border min-w-[100px] text-center"
+                    className="bg-muted text-muted-foreground text-xs font-medium px-2 py-1.5 border border-border min-w-[120px] text-center"
                   >
                     {getColumnLabel(colIdx)}
                   </th>
@@ -249,12 +306,12 @@ export function SpreadsheetModule() {
                     <td key={colIdx} className="p-0 border border-border">
                       {editable ? (
                         <input
-                          className="w-full h-full px-2 py-1.5 text-sm bg-background text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 focus:ring-inset min-w-[100px]"
+                          className="w-full h-full px-2 py-1.5 text-sm bg-background text-foreground border-none outline-none focus:ring-2 focus:ring-primary/30 focus:ring-inset min-w-[120px]"
                           value={cell}
                           onChange={(e) => updateCell(rowIdx, colIdx, e.target.value)}
                         />
                       ) : (
-                        <div className="px-2 py-1.5 text-sm text-foreground min-w-[100px] min-h-[32px]">
+                        <div className="px-2 py-1.5 text-sm text-foreground min-w-[120px] min-h-[32px]">
                           {cell}
                         </div>
                       )}
@@ -306,7 +363,9 @@ export function SpreadsheetModule() {
       ) : spreadsheets.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
+            <FileSpreadsheet className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground">Nenhuma planilha criada ainda.</p>
+            <p className="text-xs text-muted-foreground mt-1">Clique em "Nova Planilha" para começar.</p>
           </CardContent>
         </Card>
       ) : (
@@ -318,7 +377,10 @@ export function SpreadsheetModule() {
               onClick={() => openSheet(sheet)}
             >
               <CardHeader className="pb-2">
-                <CardTitle className="text-base truncate">{sheet.title}</CardTitle>
+                <CardTitle className="text-base truncate flex items-center gap-2">
+                  <FileSpreadsheet className="h-4 w-4 text-primary shrink-0" />
+                  {sheet.title}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-xs text-muted-foreground">
@@ -328,8 +390,8 @@ export function SpreadsheetModule() {
                   {new Date(sheet.updated_at).toLocaleDateString("pt-BR")} às{" "}
                   {new Date(sheet.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                 </p>
-                <div className="flex gap-2 mt-3">
-                  {canEdit(sheet) && (
+                {canEdit(sheet) && (
+                  <div className="flex gap-2 mt-3">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -355,8 +417,8 @@ export function SpreadsheetModule() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                  )}
-                </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}

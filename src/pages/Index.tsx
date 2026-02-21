@@ -20,13 +20,7 @@ import { SalesGoalsModule } from "@/components/modules/SalesGoalsModule";
 import { SalesRegistrationModule } from "@/components/modules/SalesRegistrationModule";
 import { CaixaModule } from "@/components/modules/CaixaModule";
 import { SpreadsheetModule } from "@/components/modules/SpreadsheetModule";
-
-const ChecklistHistoryModule = () => (
-  <div className="text-center py-12">
-    <h2 className="text-xl font-semibold text-foreground mb-2">Histórico de Checklists</h2>
-    <p className="text-muted-foreground">Módulo em desenvolvimento</p>
-  </div>
-);
+import { ChecklistHistory } from "@/components/modules/ChecklistHistory";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
@@ -101,7 +95,7 @@ const Index = () => {
       case "supervisor":
         return isManager ? <SupervisorManagement /> : <Dashboard />;
       case "checklist-history":
-        return isManager ? <ChecklistHistoryModule /> : <Dashboard />;
+        return isManager ? <ChecklistHistory onBack={() => setActiveItem("dashboard")} /> : <Dashboard />;
       case "feedback-history":
         return isManager ? <FeedbackHistoryModule /> : <Dashboard />;
       case "settings":
