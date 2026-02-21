@@ -28,6 +28,17 @@ export function useUnreadOccurrences() {
           fetchUnreadCount();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'occurrence_reads'
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
       .subscribe();
 
     return () => {

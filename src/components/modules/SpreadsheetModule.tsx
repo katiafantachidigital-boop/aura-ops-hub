@@ -40,6 +40,7 @@ export function SpreadsheetModule() {
   const [saving, setSaving] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [newAuthorName, setNewAuthorName] = useState("");
   const [editingTitleMode, setEditingTitleMode] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
@@ -77,11 +78,12 @@ export function SpreadsheetModule() {
   }, [fetchSpreadsheets]);
 
   const createSpreadsheet = async () => {
-    if (!user || !profile) {
+    if (!user) {
       toast({ title: "Erro", description: "Faça login para criar planilhas.", variant: "destructive" });
       return;
     }
     const title = newTitle.trim() || "Nova Planilha";
+    const authorName = newAuthorName.trim() || "Usuário";
     const initialData = Array.from({ length: 10 }, () => Array.from({ length: 6 }, () => ""));
 
     try {
@@ -91,7 +93,7 @@ export function SpreadsheetModule() {
           title,
           data: initialData as any,
           created_by: user.id,
-          created_by_name: profile.full_name || "Usuário",
+          created_by_name: authorName,
         })
         .select()
         .maybeSingle();
@@ -102,6 +104,7 @@ export function SpreadsheetModule() {
       } else if (data) {
         toast({ title: "Planilha criada com sucesso!" });
         setNewTitle("");
+        setNewAuthorName("");
         setCreateDialogOpen(false);
         await fetchSpreadsheets();
         openSheet({ ...data, data: initialData });
@@ -342,13 +345,23 @@ export function SpreadsheetModule() {
               <DialogTitle>Criar Planilha</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <Input
-                placeholder="Título da planilha"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && createSpreadsheet()}
-              />
-              <Button className="w-full" onClick={createSpreadsheet}>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Título</label>
+                <Input
+                  placeholder="Título da planilha"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Seu nome</label>
+                <Input
+                  placeholder="Digite seu nome"
+                  value={newAuthorName}
+                  onChange={(e) => setNewAuthorName(e.target.value)}
+                />
+              </div>
+              <Button className="w-full" onClick={createSpreadsheet} disabled={!newAuthorName.trim()}>
                 Criar
               </Button>
             </div>
