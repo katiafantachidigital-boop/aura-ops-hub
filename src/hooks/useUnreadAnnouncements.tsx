@@ -28,6 +28,17 @@ export function useUnreadAnnouncements() {
           fetchUnreadCount();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'announcement_reads'
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
       .subscribe();
 
     return () => {

@@ -28,6 +28,17 @@ export function useUnreadTrainings() {
           fetchUnreadCount();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'training_reads'
+        },
+        () => {
+          fetchUnreadCount();
+        }
+      )
       .subscribe();
 
     return () => {
