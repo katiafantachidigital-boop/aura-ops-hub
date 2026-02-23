@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Save, Trash2, ArrowLeft, Edit2, PlusCircle, MinusCircle, FileSpreadsheet } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { SpreadsheetUpload } from "./SpreadsheetUpload";
 
 interface Spreadsheet {
   id: string;
@@ -77,14 +78,14 @@ export function SpreadsheetModule() {
     fetchSpreadsheets();
   }, [fetchSpreadsheets]);
 
-  const createSpreadsheet = async () => {
+  const createSpreadsheet = async (titleOverride?: string, dataOverride?: string[][]) => {
     if (!user) {
       toast({ title: "Erro", description: "Faça login para criar planilhas.", variant: "destructive" });
       return;
     }
-    const title = newTitle.trim() || "Nova Planilha";
+    const title = titleOverride || newTitle.trim() || "Nova Planilha";
     const authorName = newAuthorName.trim() || "Usuário";
-    const initialData = Array.from({ length: 10 }, () => Array.from({ length: 6 }, () => ""));
+    const initialData = dataOverride || Array.from({ length: 10 }, () => Array.from({ length: 6 }, () => ""));
 
     try {
       const { data, error } = await supabase
@@ -113,6 +114,16 @@ export function SpreadsheetModule() {
       console.error("Unexpected create error:", err);
       toast({ title: "Erro inesperado ao criar", variant: "destructive" });
     }
+  };
+
+  const handleImportData = (title: string, data: string[][]) => {
+    if (!user) {
+      toast({ title: "Erro", description: "Faça login para importar planilhas.", variant: "destructive" });
+      return;
+    }
+    const authorName = profile?.full_name || "Usuário";
+    setNewAuthorName(authorName);
+    createSpreadsheet(title, data);
   };
 
   const openSheet = (sheet: Spreadsheet) => {
@@ -334,7 +345,9 @@ export function SpreadsheetModule() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">Planilhas</h2>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <div className="flex gap-2">
+          <SpreadsheetUpload onDataLoaded={handleImportData} />
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="h-4 w-4 mr-1" /> Nova Planilha
@@ -361,12 +374,13 @@ export function SpreadsheetModule() {
                   onChange={(e) => setNewAuthorName(e.target.value)}
                 />
               </div>
-              <Button className="w-full" onClick={createSpreadsheet} disabled={!newAuthorName.trim()}>
+              <Button className="w-full" onClick={() => createSpreadsheet()} disabled={!newAuthorName.trim()}>
                 Criar
               </Button>
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {loading ? (
