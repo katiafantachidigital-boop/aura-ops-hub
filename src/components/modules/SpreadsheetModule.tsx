@@ -45,6 +45,7 @@ export function SpreadsheetModule() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newAuthorName, setNewAuthorName] = useState("");
+  const [importedData, setImportedData] = useState<string[][] | null>(null);
   const [newIsPublic, setNewIsPublic] = useState(false);
   const [editingTitleMode, setEditingTitleMode] = useState(false);
   const [editingAuthorName, setEditingAuthorName] = useState("");
@@ -84,14 +85,14 @@ export function SpreadsheetModule() {
     fetchSpreadsheets();
   }, [fetchSpreadsheets]);
 
-  const createSpreadsheet = async (titleOverride?: string, dataOverride?: string[][]) => {
+  const createSpreadsheet = async () => {
     if (!user) {
       toast({ title: "Erro", description: "Faça login para criar planilhas.", variant: "destructive" });
       return;
     }
-    const title = titleOverride || newTitle.trim() || "Nova Planilha";
+    const title = newTitle.trim() || "Nova Planilha";
     const authorName = newAuthorName.trim() || "Usuário";
-    const initialData = dataOverride || Array.from({ length: 10 }, () => Array.from({ length: 6 }, () => ""));
+    const initialData = importedData || Array.from({ length: 10 }, () => Array.from({ length: 6 }, () => ""));
 
     try {
       const { data, error } = await supabase
@@ -114,6 +115,7 @@ export function SpreadsheetModule() {
         setNewTitle("");
         setNewAuthorName("");
         setNewIsPublic(false);
+        setImportedData(null);
         setCreateDialogOpen(false);
         await fetchSpreadsheets();
         openSheet({ ...data, data: initialData });
@@ -129,9 +131,11 @@ export function SpreadsheetModule() {
       toast({ title: "Erro", description: "Faça login para importar planilhas.", variant: "destructive" });
       return;
     }
-    const authorName = profile?.full_name || "Usuário";
-    setNewAuthorName(authorName);
-    createSpreadsheet(title, data);
+    setNewTitle(title);
+    setNewAuthorName(profile?.full_name || "Usuário");
+    setImportedData(data);
+    setNewIsPublic(false);
+    setCreateDialogOpen(true);
   };
 
   const openSheet = (sheet: Spreadsheet) => {
@@ -376,15 +380,18 @@ export function SpreadsheetModule() {
         <h2 className="text-lg font-semibold text-foreground">Planilhas</h2>
         <div className="flex gap-2">
           <SpreadsheetUpload onDataLoaded={handleImportData} />
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <Dialog open={createDialogOpen} onOpenChange={(open) => {
+            setCreateDialogOpen(open);
+            if (!open) { setImportedData(null); setNewTitle(""); setNewAuthorName(""); setNewIsPublic(false); }
+          }}>
           <DialogTrigger asChild>
-            <Button size="sm">
+            <Button size="sm" onClick={() => { setImportedData(null); setNewTitle(""); setNewAuthorName(profile?.full_name || ""); setNewIsPublic(false); }}>
               <Plus className="h-4 w-4 mr-1" /> Nova Planilha
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Criar Planilha</DialogTitle>
+              <DialogTitle>{importedData ? "Importar Planilha" : "Criar Planilha"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -417,7 +424,7 @@ export function SpreadsheetModule() {
                 />
               </div>
               <Button className="w-full" onClick={() => createSpreadsheet()} disabled={!newAuthorName.trim()}>
-                Criar
+                {importedData ? "Importar" : "Criar"}
               </Button>
             </div>
           </DialogContent>
