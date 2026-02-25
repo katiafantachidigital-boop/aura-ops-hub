@@ -1,43 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserPlus, FileText, MessageSquare } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { ClientRegistrationDialog } from "./ClientRegistrationDialog";
 import { ClientReportDialog } from "./ClientReportDialog";
 
 export function QuickActions() {
   const navigate = useNavigate();
-  const { user, isManager } = useAuth();
-  const [isWeeklySupervisor, setIsWeeklySupervisor] = useState(false);
   const [clientDialogOpen, setClientDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      checkWeeklySupervisor();
-    }
-  }, [user]);
-
-  const checkWeeklySupervisor = async () => {
-    if (!user) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    
-    const { data } = await supabase
-      .from('weekly_supervisors')
-      .select('id')
-      .eq('user_id', user.id)
-      .lte('week_start', today)
-      .gte('week_end', today)
-      .maybeSingle();
-
-    setIsWeeklySupervisor(!!data);
-  };
-
-  const canAccessClientFeatures = isManager || isWeeklySupervisor;
 
   const handleOpenFeedback = () => {
     navigate("/feedback");
@@ -50,7 +22,6 @@ export function QuickActions() {
       icon: UserPlus,
       variant: "default" as const,
       onClick: () => setClientDialogOpen(true),
-      visible: canAccessClientFeatures,
     },
     {
       id: "report",
@@ -58,7 +29,6 @@ export function QuickActions() {
       icon: FileText,
       variant: "outline" as const,
       onClick: () => setReportDialogOpen(true),
-      visible: canAccessClientFeatures,
     },
     {
       id: "feedback",
@@ -66,11 +36,8 @@ export function QuickActions() {
       icon: MessageSquare,
       variant: "outline" as const,
       onClick: handleOpenFeedback,
-      visible: canAccessClientFeatures,
     },
   ];
-
-  const visibleActions = actions.filter(a => a.visible);
 
   return (
     <>
@@ -80,7 +47,7 @@ export function QuickActions() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-2">
-            {visibleActions.map((action) => {
+            {actions.map((action) => {
               const Icon = action.icon;
               return (
                 <Button

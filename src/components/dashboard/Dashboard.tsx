@@ -21,7 +21,7 @@ const clinicLabels: Record<string, string> = {
 };
 
 export function Dashboard() {
-  const { isManager, profile } = useAuth();
+  const { isManager, profile, canSubmitChecklist } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     monthlyRevenue: 0,
     monthlyRevenueBatel: 0,
@@ -132,11 +132,23 @@ export function Dashboard() {
     },
   ];
 
+  // Regular users (not manager, not supervisor) only see QuickActions
+  const isRegularUser = !isManager && !canSubmitChecklist;
+
+  if (isRegularUser) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 max-w-md">
+          <QuickActions />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
       {isManager ? (
-        // Manager sees both clinics' revenue separately
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <StatCard
@@ -165,7 +177,6 @@ export function Dashboard() {
           </div>
         </>
       ) : (
-        // Non-managers see single revenue for their clinic
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title={userClinic ? `Faturamento ${clinicLabels[userClinic]}` : "Faturamento Mensal"}
@@ -184,12 +195,9 @@ export function Dashboard() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Team Performance */}
         <div className="lg:col-span-2">
           <TeamPerformance />
         </div>
-
-        {/* Right Column - Quick Actions & Goals */}
         <div className="space-y-6">
           <QuickActions />
           <GoalsProgress />
