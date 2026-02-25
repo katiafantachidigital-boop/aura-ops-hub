@@ -817,6 +817,7 @@ export type Database = {
           created_by_name: string
           data: Json
           id: string
+          is_public: boolean
           title: string
           updated_at: string
         }
@@ -827,6 +828,7 @@ export type Database = {
           created_by_name: string
           data?: Json
           id?: string
+          is_public?: boolean
           title?: string
           updated_at?: string
         }
@@ -837,6 +839,7 @@ export type Database = {
           created_by_name?: string
           data?: Json
           id?: string
+          is_public?: boolean
           title?: string
           updated_at?: string
         }
