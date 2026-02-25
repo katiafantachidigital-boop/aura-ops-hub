@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Save, Trash2, ArrowLeft, Edit2, PlusCircle, MinusCircle, FileSpreadsheet } from "lucide-react";
+import { Plus, Save, Trash2, ArrowLeft, Edit2, PlusCircle, MinusCircle, FileSpreadsheet, Globe, Lock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { SpreadsheetUpload } from "./SpreadsheetUpload";
@@ -19,6 +21,7 @@ interface Spreadsheet {
   created_by_name: string;
   created_at: string;
   updated_at: string;
+  is_public: boolean;
 }
 
 const ensureValidData = (data: unknown): string[][] => {
@@ -42,13 +45,16 @@ export function SpreadsheetModule() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newAuthorName, setNewAuthorName] = useState("");
+  const [newIsPublic, setNewIsPublic] = useState(false);
   const [editingTitleMode, setEditingTitleMode] = useState(false);
+  const [editingAuthorName, setEditingAuthorName] = useState("");
+  const [editingAuthorMode, setEditingAuthorMode] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
 
   const canEdit = (sheet: Spreadsheet) => {
     if (!user) return false;
-    return sheet.created_by === user.id || isManager;
+    return sheet.created_by === user.id || isManager || sheet.is_public;
   };
 
   const fetchSpreadsheets = useCallback(async () => {
@@ -95,6 +101,7 @@ export function SpreadsheetModule() {
           data: initialData as any,
           created_by: user.id,
           created_by_name: authorName,
+          is_public: newIsPublic,
         })
         .select()
         .maybeSingle();
@@ -106,6 +113,7 @@ export function SpreadsheetModule() {
         toast({ title: "Planilha criada com sucesso!" });
         setNewTitle("");
         setNewAuthorName("");
+        setNewIsPublic(false);
         setCreateDialogOpen(false);
         await fetchSpreadsheets();
         openSheet({ ...data, data: initialData });
@@ -131,6 +139,7 @@ export function SpreadsheetModule() {
     setSelectedSheet({ ...sheet, data: validData });
     setEditingData(validData.map(row => [...row]));
     setEditingTitle(sheet.title);
+    setEditingAuthorName(sheet.created_by_name);
     setHasUnsavedChanges(false);
   };
 
@@ -144,6 +153,7 @@ export function SpreadsheetModule() {
         .update({
           title: editingTitle,
           data: editingData as any,
+          created_by_name: editingAuthorName,
         })
         .eq("id", selectedSheet.id);
 
@@ -260,9 +270,28 @@ export function SpreadsheetModule() {
             </h2>
           )}
 
-          <span className="text-xs text-muted-foreground">
-            por {selectedSheet.created_by_name}
-          </span>
+          {editingAuthorMode && editable ? (
+            <Input
+              value={editingAuthorName}
+              onChange={(e) => { setEditingAuthorName(e.target.value); setHasUnsavedChanges(true); }}
+              onBlur={() => setEditingAuthorMode(false)}
+              onKeyDown={(e) => e.key === "Enter" && setEditingAuthorMode(false)}
+              className="max-w-[180px] h-7 text-xs"
+              autoFocus
+            />
+          ) : (
+            <span
+              className={cn("text-xs text-muted-foreground", editable && "cursor-pointer hover:text-primary")}
+              onClick={() => editable && setEditingAuthorMode(true)}
+            >
+              por {editingAuthorName}
+              {editable && <Edit2 className="inline h-3 w-3 ml-1" />}
+            </span>
+          )}
+
+          {selectedSheet.is_public && (
+            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Pública</span>
+          )}
 
           {editable && (
             <div className="ml-auto flex gap-2 items-center">
@@ -374,6 +403,19 @@ export function SpreadsheetModule() {
                   onChange={(e) => setNewAuthorName(e.target.value)}
                 />
               </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div className="flex items-center gap-2">
+                  {newIsPublic ? <Globe className="h-4 w-4 text-primary" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
+                  <Label htmlFor="public-switch" className="text-sm font-medium cursor-pointer">
+                    {newIsPublic ? "Pública — todos podem editar" : "Privada — só você pode editar"}
+                  </Label>
+                </div>
+                <Switch
+                  id="public-switch"
+                  checked={newIsPublic}
+                  onCheckedChange={setNewIsPublic}
+                />
+              </div>
               <Button className="w-full" onClick={() => createSpreadsheet()} disabled={!newAuthorName.trim()}>
                 Criar
               </Button>
@@ -407,6 +449,11 @@ export function SpreadsheetModule() {
                 <CardTitle className="text-base truncate flex items-center gap-2">
                   <FileSpreadsheet className="h-4 w-4 text-primary shrink-0" />
                   {sheet.title}
+                  {sheet.is_public ? (
+                    <Globe className="h-3.5 w-3.5 text-primary shrink-0" />
+                  ) : (
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
