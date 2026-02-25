@@ -60,6 +60,33 @@ const clinicLabels: Record<string, string> = {
   batel: "Batel",
 };
 
+// Helper to parse currency string (accepts both comma and period as decimal)
+const parseCurrency = (value: string): number => {
+  if (!value) return 0;
+  // Replace comma with period for parsing
+  const normalized = value.replace(",", ".");
+  const parsed = parseFloat(normalized);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+// Helper to sanitize currency input (allow digits, one comma or period)
+const sanitizeCurrencyInput = (value: string): string => {
+  // Allow only digits, comma, and period
+  let sanitized = value.replace(/[^0-9.,]/g, "");
+  // Replace period with comma for display consistency
+  sanitized = sanitized.replace(".", ",");
+  // Allow only one comma
+  const parts = sanitized.split(",");
+  if (parts.length > 2) {
+    sanitized = parts[0] + "," + parts.slice(1).join("");
+  }
+  // Limit to 2 decimal places
+  if (parts.length === 2 && parts[1].length > 2) {
+    sanitized = parts[0] + "," + parts[1].substring(0, 2);
+  }
+  return sanitized;
+};
+
 export function CaixaModule() {
   const { user, profile, isManager, canSubmitChecklist } = useAuth();
   const [entries, setEntries] = useState<CashRegisterEntry[]>([]);
@@ -113,7 +140,7 @@ export function CaixaModule() {
   };
 
   const handleSubmit = async () => {
-    const value = parseFloat(totalValue);
+    const value = parseCurrency(totalValue);
     
     if (!value || value <= 0) {
       toast.error("Digite um valor válido");
@@ -121,11 +148,11 @@ export function CaixaModule() {
     }
 
     // Validate at least one payment method
-    const pix = parseFloat(paymentPix) || 0;
-    const credit = parseFloat(paymentCredit) || 0;
-    const debit = parseFloat(paymentDebit) || 0;
-    const boleto = parseFloat(paymentBoleto) || 0;
-    const cash = parseFloat(paymentCash) || 0;
+    const pix = parseCurrency(paymentPix);
+    const credit = parseCurrency(paymentCredit);
+    const debit = parseCurrency(paymentDebit);
+    const boleto = parseCurrency(paymentBoleto);
+    const cash = parseCurrency(paymentCash);
 
     const totalPayments = pix + credit + debit + boleto + cash;
     if (totalPayments === 0) {
@@ -463,12 +490,11 @@ export function CaixaModule() {
                 Valor Total das Vendas de Hoje (R$) *
               </Label>
               <Input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={totalValue}
-                onChange={(e) => setTotalValue(e.target.value)}
-                placeholder="0.00"
-                min="0.01"
-                step="0.01"
+                onChange={(e) => setTotalValue(sanitizeCurrencyInput(e.target.value))}
+                placeholder="0,00"
                 className="text-lg"
               />
             </div>
@@ -489,12 +515,11 @@ export function CaixaModule() {
                   <div className="flex-1">
                     <Label className="text-xs text-muted-foreground">PIX (R$)</Label>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={paymentPix}
-                      onChange={(e) => setPaymentPix(e.target.value)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
+                      onChange={(e) => setPaymentPix(sanitizeCurrencyInput(e.target.value))}
+                      placeholder="0,00"
                       className="h-8"
                     />
                   </div>
@@ -507,12 +532,11 @@ export function CaixaModule() {
                   <div className="flex-1">
                     <Label className="text-xs text-muted-foreground">Crédito (R$)</Label>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={paymentCredit}
-                      onChange={(e) => setPaymentCredit(e.target.value)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
+                      onChange={(e) => setPaymentCredit(sanitizeCurrencyInput(e.target.value))}
+                      placeholder="0,00"
                       className="h-8"
                     />
                   </div>
@@ -525,12 +549,11 @@ export function CaixaModule() {
                   <div className="flex-1">
                     <Label className="text-xs text-muted-foreground">Débito (R$)</Label>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={paymentDebit}
-                      onChange={(e) => setPaymentDebit(e.target.value)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
+                      onChange={(e) => setPaymentDebit(sanitizeCurrencyInput(e.target.value))}
+                      placeholder="0,00"
                       className="h-8"
                     />
                   </div>
@@ -543,12 +566,11 @@ export function CaixaModule() {
                   <div className="flex-1">
                     <Label className="text-xs text-muted-foreground">Boleto (R$)</Label>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={paymentBoleto}
-                      onChange={(e) => setPaymentBoleto(e.target.value)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
+                      onChange={(e) => setPaymentBoleto(sanitizeCurrencyInput(e.target.value))}
+                      placeholder="0,00"
                       className="h-8"
                     />
                   </div>
@@ -561,12 +583,11 @@ export function CaixaModule() {
                   <div className="flex-1">
                     <Label className="text-xs text-muted-foreground">Dinheiro (R$)</Label>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={paymentCash}
-                      onChange={(e) => setPaymentCash(e.target.value)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
+                      onChange={(e) => setPaymentCash(sanitizeCurrencyInput(e.target.value))}
+                      placeholder="0,00"
                       className="h-8"
                     />
                   </div>
