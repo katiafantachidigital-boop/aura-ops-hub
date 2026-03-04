@@ -51,7 +51,9 @@ export function Header({ title, subtitle, onToggleSidebar, sidebarOpen }: Header
 
         {/* Period Selector */}
         <Button variant="outline" className="hidden md:flex items-center gap-2">
-          <span className="text-sm">Jan 2026</span>
+          <span className="text-sm">
+            {new Date().toLocaleDateString("pt-BR", { month: "short", year: "numeric" }).replace(/^\w/, c => c.toUpperCase())}
+          </span>
           <ChevronDown className="h-4 w-4" />
         </Button>
       </div>
