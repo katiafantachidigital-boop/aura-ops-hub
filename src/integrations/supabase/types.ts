@@ -582,6 +582,41 @@ export type Database = {
           },
         ]
       }
+      occurrence_replies: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          occurrence_id: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          occurrence_id: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          occurrence_id?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "occurrence_replies_occurrence_id_fkey"
+            columns: ["occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "occurrences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       occurrences: {
         Row: {
           content: string
