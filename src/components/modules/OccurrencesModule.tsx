@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnreadOccurrences } from '@/hooks/useUnreadOccurrences';
 import { toast } from 'sonner';
-import { Plus, Trash2, User, Calendar, Lock, Globe, Users, Mail, Send, PenLine } from 'lucide-react';
+import { Plus, Trash2, User, Calendar, Lock, Globe, Users, Mail, Send, PenLine, Reply, CornerDownRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -32,6 +32,15 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+
+interface OccurrenceReply {
+  id: string;
+  occurrence_id: string;
+  user_id: string;
+  user_name: string;
+  content: string;
+  created_at: string;
+}
 
 interface Occurrence {
   id: string;
@@ -54,6 +63,7 @@ export const OccurrencesModule = () => {
   const { user, profile, isManager, canSubmitChecklist } = useAuth();
   const { markAllAsRead } = useUnreadOccurrences();
   const [occurrences, setOccurrences] = useState<Occurrence[]>([]);
+  const [replies, setReplies] = useState<Record<string, OccurrenceReply[]>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -64,6 +74,11 @@ export const OccurrencesModule = () => {
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  
+  // Reply state
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
 
   const isSupervisor = canSubmitChecklist && !isManager;
 
@@ -82,6 +97,25 @@ export const OccurrencesModule = () => {
 
       if (occurrenceData.length > 0) {
         markAllAsRead(occurrenceData.map(o => o.id));
+      }
+
+      // Load replies for all occurrences
+      const occurrenceIds = occurrenceData.map(o => o.id);
+      if (occurrenceIds.length > 0) {
+        const { data: repliesData, error: repliesError } = await supabase
+          .from('occurrence_replies')
+          .select('*')
+          .in('occurrence_id', occurrenceIds)
+          .order('created_at', { ascending: true });
+
+        if (!repliesError && repliesData) {
+          const grouped: Record<string, OccurrenceReply[]> = {};
+          (repliesData as OccurrenceReply[]).forEach(r => {
+            if (!grouped[r.occurrence_id]) grouped[r.occurrence_id] = [];
+            grouped[r.occurrence_id].push(r);
+          });
+          setReplies(grouped);
+        }
       }
     } catch (error) {
       console.error('Error loading occurrences:', error);
@@ -144,7 +178,6 @@ export const OccurrencesModule = () => {
 
     setSubmitting(true);
     try {
-      // Non-managers: visibility is always 'public' but RLS ensures only managers + author see it
       const finalVisibility = isManager ? visibility : 'public';
       const finalTargetProfiles = isManager && visibility === 'exclusive' ? selectedProfiles : null;
 
@@ -183,6 +216,32 @@ export const OccurrencesModule = () => {
       toast.error('Erro ao excluir ocorrência');
     }
     setDeleteId(null);
+  };
+
+  const handleReply = async (occurrenceId: string) => {
+    if (!user || !profile || !replyContent.trim()) return;
+
+    setSubmittingReply(true);
+    try {
+      const { error } = await supabase.from('occurrence_replies').insert({
+        occurrence_id: occurrenceId,
+        user_id: user.id,
+        user_name: profile.full_name || 'Gestora',
+        content: replyContent.trim(),
+      });
+
+      if (error) throw error;
+
+      toast.success('Resposta enviada!');
+      setReplyContent('');
+      setReplyingTo(null);
+      loadOccurrences();
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      toast.error('Erro ao enviar resposta');
+    } finally {
+      setSubmittingReply(false);
+    }
   };
 
   const toggleProfileSelection = (profileId: string) => {
@@ -237,7 +296,6 @@ export const OccurrencesModule = () => {
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
-              {/* Recipient / Visibility - Only for Manager */}
               {isManager && (
                 <div className="space-y-3 border-b pb-4">
                   <Label className="flex items-center gap-2 text-sm font-medium">
@@ -296,7 +354,6 @@ export const OccurrencesModule = () => {
                 </div>
               )}
 
-              {/* Non-manager info */}
               {!isManager && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground border-b pb-3">
                   <Lock className="h-4 w-4" />
@@ -304,7 +361,6 @@ export const OccurrencesModule = () => {
                 </div>
               )}
 
-              {/* Title */}
               <div className="space-y-1.5">
                 <Label htmlFor="occurrence-title" className="text-sm font-medium">Título</Label>
                 <Input
@@ -315,7 +371,6 @@ export const OccurrencesModule = () => {
                 />
               </div>
 
-              {/* Content */}
               <div className="space-y-1.5">
                 <Label htmlFor="occurrence-content" className="text-sm font-medium">Mensagem</Label>
                 <Textarea
@@ -327,7 +382,6 @@ export const OccurrencesModule = () => {
                 />
               </div>
 
-              {/* Signature */}
               <div className="space-y-1.5 border-t pt-3">
                 <Label htmlFor="occurrence-signature" className="text-sm text-muted-foreground">
                   Att:
@@ -364,60 +418,146 @@ export const OccurrencesModule = () => {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {occurrences.map((occurrence) => (
-            <Card key={occurrence.id} className="relative">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1 flex-1 min-w-0">
-                    <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
-                      <User className="h-4 w-4 text-primary shrink-0" />
-                      {occurrence.user_name}
-                      {occurrence.user_id === user?.id && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                          Você
-                        </span>
+          {occurrences.map((occurrence) => {
+            const occurrenceReplies = replies[occurrence.id] || [];
+            const isReplyOpen = replyingTo === occurrence.id;
+            const canReply = isManager && occurrence.user_id !== user?.id;
+
+            return (
+              <Card key={occurrence.id} className="relative overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
+                        <User className="h-4 w-4 text-primary shrink-0" />
+                        {occurrence.user_name}
+                        {occurrence.user_id === user?.id && (
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                            Você
+                          </span>
+                        )}
+                        {occurrence.visibility === 'exclusive' && (
+                          <Badge variant="outline" className="text-xs gap-1">
+                            <Lock className="h-3 w-3" />
+                            Exclusiva
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      {occurrence.title && (
+                        <p className="text-sm font-medium text-foreground">
+                          {occurrence.title}
+                        </p>
                       )}
-                      {occurrence.visibility === 'exclusive' && (
-                        <Badge variant="outline" className="text-xs gap-1">
-                          <Lock className="h-3 w-3" />
-                          Exclusiva
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    {occurrence.title && (
-                      <p className="text-sm font-medium text-foreground">
-                        {occurrence.title}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {format(new Date(occurrence.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(occurrence.created_at), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                      </div>
                     </div>
+                    {(occurrence.user_id === user?.id || isManager) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
+                        onClick={() => setDeleteId(occurrence.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                  {(occurrence.user_id === user?.id || isManager) && (
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">
+                    {occurrence.content}
+                  </p>
+                  {occurrence.signature && (
+                    <p className="text-sm text-muted-foreground italic pt-2 border-t">
+                      Att: {occurrence.signature}
+                    </p>
+                  )}
+
+                  {/* Replies thread - email style */}
+                  {occurrenceReplies.length > 0 && (
+                    <div className="mt-3 space-y-0">
+                      {occurrenceReplies.map((reply) => (
+                        <div
+                          key={reply.id}
+                          className="border-l-2 border-primary/30 ml-2 pl-4 py-3 relative"
+                        >
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <CornerDownRight className="h-3.5 w-3.5 text-primary/60" />
+                            <span className="text-xs font-semibold text-primary">
+                              {reply.user_name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              — {format(new Date(reply.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground whitespace-pre-wrap pl-5">
+                            {reply.content}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reply button for managers on user messages */}
+                  {canReply && !isReplyOpen && (
                     <Button
                       variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
-                      onClick={() => setDeleteId(occurrence.id)}
+                      size="sm"
+                      className="gap-1.5 text-xs text-muted-foreground hover:text-primary mt-1"
+                      onClick={() => {
+                        setReplyingTo(occurrence.id);
+                        setReplyContent('');
+                      }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Reply className="h-3.5 w-3.5" />
+                      Responder
                     </Button>
                   )}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-sm text-foreground whitespace-pre-wrap">
-                  {occurrence.content}
-                </p>
-                {occurrence.signature && (
-                  <p className="text-sm text-muted-foreground italic pt-2 border-t">
-                    Att: {occurrence.signature}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+
+                  {/* Inline reply form */}
+                  {isReplyOpen && (
+                    <div className="border-l-2 border-primary/30 ml-2 pl-4 pt-3 space-y-2">
+                      <div className="flex items-center gap-1.5 text-xs font-medium text-primary">
+                        <CornerDownRight className="h-3.5 w-3.5" />
+                        Responder a {occurrence.user_name}
+                      </div>
+                      <Textarea
+                        placeholder="Escreva sua resposta..."
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        rows={3}
+                        className="text-sm"
+                        autoFocus
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setReplyingTo(null);
+                            setReplyContent('');
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="gap-1.5"
+                          disabled={submittingReply || !replyContent.trim()}
+                          onClick={() => handleReply(occurrence.id)}
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          {submittingReply ? 'Enviando...' : 'Enviar'}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
