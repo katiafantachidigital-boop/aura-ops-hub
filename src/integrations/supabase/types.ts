@@ -587,7 +587,9 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          signature: string | null
           target_profiles: string[] | null
+          title: string | null
           user_id: string
           user_name: string
           visibility: string
@@ -596,7 +598,9 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          signature?: string | null
           target_profiles?: string[] | null
+          title?: string | null
           user_id: string
           user_name: string
           visibility?: string
@@ -605,7 +609,9 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          signature?: string | null
           target_profiles?: string[] | null
+          title?: string | null
           user_id?: string
           user_name?: string
           visibility?: string
