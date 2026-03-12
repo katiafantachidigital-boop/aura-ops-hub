@@ -82,6 +82,21 @@ export const OccurrencesModule = () => {
 
   const isSupervisor = canSubmitChecklist && !isManager;
 
+  const getDisplayName = () => {
+    if (profile?.full_name?.trim()) return profile.full_name.trim();
+
+    const metadataName = user?.user_metadata?.full_name;
+    if (typeof metadataName === 'string' && metadataName.trim()) {
+      return metadataName.trim();
+    }
+
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+
+    return 'Gestora';
+  };
+
   const loadOccurrences = async () => {
     if (!user) return;
     
@@ -219,15 +234,29 @@ export const OccurrencesModule = () => {
   };
 
   const handleReply = async (occurrenceId: string) => {
-    if (!user || !profile || !replyContent.trim()) return;
+    if (!user) {
+      toast.error('Sessão expirada. Faça login novamente.');
+      return;
+    }
+
+    if (!isManager) {
+      toast.error('Apenas gestoras podem responder ocorrências.');
+      return;
+    }
+
+    const contentToSend = replyContent.trim();
+    if (!contentToSend) {
+      toast.error('Escreva uma resposta antes de enviar.');
+      return;
+    }
 
     setSubmittingReply(true);
     try {
       const { error } = await supabase.from('occurrence_replies').insert({
         occurrence_id: occurrenceId,
         user_id: user.id,
-        user_name: profile.full_name || 'Gestora',
-        content: replyContent.trim(),
+        user_name: getDisplayName(),
+        content: contentToSend,
       });
 
       if (error) throw error;
