@@ -82,6 +82,21 @@ export const OccurrencesModule = () => {
 
   const isSupervisor = canSubmitChecklist && !isManager;
 
+  const getDisplayName = () => {
+    if (profile?.full_name?.trim()) return profile.full_name.trim();
+
+    const metadataName = user?.user_metadata?.full_name;
+    if (typeof metadataName === 'string' && metadataName.trim()) {
+      return metadataName.trim();
+    }
+
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+
+    return 'Gestora';
+  };
+
   const loadOccurrences = async () => {
     if (!user) return;
     
