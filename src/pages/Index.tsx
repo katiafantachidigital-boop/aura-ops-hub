@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { Dashboard } from "@/components/dashboard/Dashboard";
@@ -42,11 +42,16 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   profile: { title: "Meu Perfil", subtitle: "Seu perfil profissional" },
 };
 
+const VALID_SECTIONS = new Set(Object.keys(pageTitles));
+
 const Index = () => {
   const navigate = useNavigate();
+  const { section } = useParams<{ section?: string }>();
   const { user, loading, signOut, isProfileComplete, isManager } = useAuth();
-  const [activeItem, setActiveItem] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Derive active item from URL; fallback to dashboard for unknown slugs
+  const activeItem = section && VALID_SECTIONS.has(section) ? section : "dashboard";
   const currentPage = pageTitles[activeItem] || pageTitles.dashboard;
 
   // Redirect to auth if not logged in
@@ -56,13 +61,24 @@ const Index = () => {
     }
   }, [user, loading, navigate]);
 
+  // Redirect unknown slugs to dashboard URL
+  useEffect(() => {
+    if (section && !VALID_SECTIONS.has(section)) {
+      navigate("/", { replace: true });
+    }
+  }, [section, navigate]);
+
   const handleItemClick = async (id: string) => {
     if (id === "logout") {
       await signOut();
       navigate("/auth");
       return;
     }
-    setActiveItem(id);
+    if (id === "dashboard") {
+      navigate("/");
+    } else {
+      navigate(`/${id}`);
+    }
   };
 
   const renderContent = () => {
@@ -95,7 +111,7 @@ const Index = () => {
       case "supervisor":
         return isManager ? <SupervisorManagement /> : <Dashboard />;
       case "checklist-history":
-        return isManager ? <ChecklistHistory onBack={() => setActiveItem("dashboard")} /> : <Dashboard />;
+        return isManager ? <ChecklistHistory onBack={() => navigate("/")} /> : <Dashboard />;
       case "feedback-history":
         return isManager ? <FeedbackHistoryModule /> : <Dashboard />;
       case "settings":
