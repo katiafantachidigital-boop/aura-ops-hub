@@ -36,27 +36,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [hasManagerRole, setHasManagerRole] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-    if (!error && data) {
-      setProfile({
-        id: data.id,
-        full_name: data.full_name,
-        role: data.role,
-        is_supervisor: data.is_supervisor || false,
-        profile_completed: data.profile_completed || false,
-        birth_date: data.birth_date,
-        shift: data.shift,
-        custom_role: data.custom_role,
-        clinic: data.clinic || null,
-      });
+      if (error) {
+        console.error("[useAuth] fetchProfile error:", error);
+        return;
+      }
+
+      if (data) {
+        setProfile({
+          id: data.id,
+          full_name: data.full_name,
+          role: data.role,
+          is_supervisor: data.is_supervisor || false,
+          profile_completed: data.profile_completed || false,
+          birth_date: data.birth_date,
+          shift: data.shift,
+          custom_role: data.custom_role,
+          clinic: data.clinic || null,
+        });
+      }
+    } catch (e) {
+      console.error("[useAuth] fetchProfile exception:", e);
+    }
+  };
+
+  const fetchManagerRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "gestora")
+        .maybeSingle();
+      if (error) {
+        console.error("[useAuth] fetchManagerRole error:", error);
+        return;
+      }
+      setHasManagerRole(!!data);
+    } catch (e) {
+      console.error("[useAuth] fetchManagerRole exception:", e);
     }
   };
 
