@@ -17,7 +17,7 @@ const ALL_STEPS: TourStep[] = [
   {
     route: "/",
     selector: '[data-tour="header-title"]',
-    title: "Bem-vinda! 👋",
+    title: "Bem-vindo(a)! 👋",
     description:
       "Este é um passo a passo rápido pelo sistema. Use os botões para avançar, voltar ou sair a qualquer momento.",
   },
