@@ -88,6 +88,66 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
   const [racePoints, setRacePoints] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [raceConfig, setRaceConfig] = useState<{ id: string; current_position: number } | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const isOwnProfile = !collaboratorId || collaboratorId === user?.id;
+
+  const handleSaveName = async () => {
+    const trimmed = editedName.trim();
+    if (!trimmed || !user) return;
+    setIsSavingName(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: trimmed })
+        .eq('id', user.id);
+      if (error) throw error;
+      setCollaborator((c) => (c ? { ...c, full_name: trimmed } : c));
+      setIsEditingName(false);
+      toast({ title: "Nome atualizado" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Erro", description: "Não foi possível salvar o nome", variant: "destructive" });
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Imagem muito grande", description: "Tamanho máximo: 5 MB", variant: "destructive" });
+      return;
+    }
+    setIsUploadingAvatar(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path);
+      const url = pub.publicUrl;
+      const { error: updErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: url } as any)
+        .eq('id', user.id);
+      if (updErr) throw updErr;
+      setCollaborator((c) => (c ? { ...c, avatar_url: url } : c));
+      toast({ title: "Foto de perfil atualizada" });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Erro", description: "Não foi possível enviar a foto", variant: "destructive" });
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
 
   const targetId = collaboratorId || user?.id;
 
@@ -112,6 +172,7 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
           id: profile.id,
           full_name: profile.full_name || 'Colaborador',
           role: profile.role || 'colaborador',
+          avatar_url: (profile as any).avatar_url || undefined,
           is_supervisor: profile.is_supervisor || false
         });
       }
@@ -399,18 +460,71 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
         <div className="h-24 gradient-primary" />
         <CardContent className="relative pt-0 pb-6">
           <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-12">
-            <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-              <AvatarImage src={collaborator?.avatar_url} />
-              <AvatarFallback className="text-2xl font-bold bg-primary text-primary-foreground">
-                {collaborator ? getInitials(collaborator.full_name) : 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative group w-24 h-24">
+              <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+                <AvatarImage src={collaborator?.avatar_url} />
+                <AvatarFallback className="text-2xl font-bold bg-primary text-primary-foreground">
+                  {collaborator ? getInitials(collaborator.full_name) : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              {isOwnProfile && (
+                <label
+                  htmlFor="avatar-upload"
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white text-xs font-medium opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                  title="Alterar foto"
+                >
+                  {isUploadingAvatar ? "Enviando..." : "Alterar"}
+                </label>
+              )}
+              {isOwnProfile && (
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                  disabled={isUploadingAvatar}
+                />
+              )}
+            </div>
             
             <div className="flex-1 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-2xl font-bold text-foreground">
-                  {collaborator?.full_name || 'Colaborador'}
-                </h2>
+                {isEditingName ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Input
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      className="h-9 w-56"
+                      maxLength={80}
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={handleSaveName} disabled={isSavingName}>
+                      Salvar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditingName(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-bold text-foreground">
+                      {collaborator?.full_name || 'Colaborador'}
+                    </h2>
+                    {isOwnProfile && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditedName(collaborator?.full_name || "");
+                          setIsEditingName(true);
+                        }}
+                      >
+                        Editar
+                      </Button>
+                    )}
+                  </>
+                )}
                 {collaborator?.is_supervisor && (
                   <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
                     <Crown className="h-3 w-3 mr-1" />

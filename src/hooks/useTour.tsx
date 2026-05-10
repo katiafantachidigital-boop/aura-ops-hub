@@ -200,6 +200,14 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
       const el = await waitForElement(step.selector);
 
+      // Auto-scroll the highlighted element into view so its tooltip is fully visible
+      if (el) {
+        try {
+          (el as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+          await new Promise((r) => setTimeout(r, 350));
+        } catch {}
+      }
+
       if (driverRef.current) {
         driverRef.current.destroy();
       }
