@@ -543,6 +543,18 @@ export default function ClientFeedback() {
           </CardContent>
         </Card>
 
+        {/* Honeypot anti-spam: hidden from users, only bots fill this */}
+        <input
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          aria-hidden="true"
+          style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
+        />
+
         {/* Submit Button */}
         <Button 
           onClick={handleSubmit} 
