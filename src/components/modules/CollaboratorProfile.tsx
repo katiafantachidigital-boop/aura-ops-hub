@@ -460,18 +460,71 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
         <div className="h-24 gradient-primary" />
         <CardContent className="relative pt-0 pb-6">
           <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-12">
-            <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-              <AvatarImage src={collaborator?.avatar_url} />
-              <AvatarFallback className="text-2xl font-bold bg-primary text-primary-foreground">
-                {collaborator ? getInitials(collaborator.full_name) : 'U'}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative group w-24 h-24">
+              <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
+                <AvatarImage src={collaborator?.avatar_url} />
+                <AvatarFallback className="text-2xl font-bold bg-primary text-primary-foreground">
+                  {collaborator ? getInitials(collaborator.full_name) : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              {isOwnProfile && (
+                <label
+                  htmlFor="avatar-upload"
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 text-white text-xs font-medium opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                  title="Alterar foto"
+                >
+                  {isUploadingAvatar ? "Enviando..." : "Alterar"}
+                </label>
+              )}
+              {isOwnProfile && (
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                  disabled={isUploadingAvatar}
+                />
+              )}
+            </div>
             
             <div className="flex-1 space-y-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-2xl font-bold text-foreground">
-                  {collaborator?.full_name || 'Colaborador'}
-                </h2>
+                {isEditingName ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Input
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      className="h-9 w-56"
+                      maxLength={80}
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={handleSaveName} disabled={isSavingName}>
+                      Salvar
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditingName(false)}>
+                      Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-2xl font-bold text-foreground">
+                      {collaborator?.full_name || 'Colaborador'}
+                    </h2>
+                    {isOwnProfile && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setEditedName(collaborator?.full_name || "");
+                          setIsEditingName(true);
+                        }}
+                      >
+                        Editar
+                      </Button>
+                    )}
+                  </>
+                )}
                 {collaborator?.is_supervisor && (
                   <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
                     <Crown className="h-3 w-3 mr-1" />
