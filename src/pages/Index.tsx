@@ -111,7 +111,7 @@ const Index = () => {
       case "supervisor":
         return isManager ? <SupervisorManagement /> : <Dashboard />;
       case "checklist-history":
-        return isManager ? <ChecklistHistory onBack={() => setActiveItem("dashboard")} /> : <Dashboard />;
+        return isManager ? <ChecklistHistory onBack={() => navigate("/")} /> : <Dashboard />;
       case "feedback-history":
         return isManager ? <FeedbackHistoryModule /> : <Dashboard />;
       case "settings":
