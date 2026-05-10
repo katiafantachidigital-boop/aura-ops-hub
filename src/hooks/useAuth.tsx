@@ -163,8 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
-  // Check if user is manager (by email)
-  const isManager = user?.email === "gerenteipfp@gmail.com";
+  // Check if user is manager: dynamic via user_roles, with email as fallback
+  const isManager = hasManagerRole || user?.email === "gerenteipfp@gmail.com";
 
   // Check if user can submit checklist: gestora role OR is_supervisor = true
   const canSubmitChecklist = Boolean(
