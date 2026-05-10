@@ -76,6 +76,7 @@ interface CollaboratorProfileProps {
 
 export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps) {
   const { user } = useAuth();
+  const { startTour } = useTour();
   const [collaborator, setCollaborator] = useState<CollaboratorData | null>(null);
   const [scores, setScores] = useState<ScoreData | null>(null);
   const [trainings, setTrainings] = useState<TrainingProgress[]>([]);
