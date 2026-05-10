@@ -22,7 +22,9 @@ export default function ClientFeedback() {
   const [loadingClients, setLoadingClients] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  
+  const [formStartedAt] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   // Identificação
