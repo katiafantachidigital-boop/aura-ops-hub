@@ -112,6 +112,7 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
           id: profile.id,
           full_name: profile.full_name || 'Colaborador',
           role: profile.role || 'colaborador',
+          avatar_url: (profile as any).avatar_url || undefined,
           is_supervisor: profile.is_supervisor || false
         });
       }
