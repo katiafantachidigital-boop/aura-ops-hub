@@ -22,7 +22,7 @@ export function Header({ title, subtitle, onToggleSidebar, sidebarOpen }: Header
           <Menu className="h-5 w-5" />
         </Button>
         
-        <div className="min-w-0">
+        <div className="min-w-0" data-tour="header-title">
           <h1 className="text-lg md:text-xl font-bold text-foreground truncate">{title}</h1>
           {subtitle && (
             <p className="text-xs md:text-sm text-muted-foreground truncate hidden sm:block">{subtitle}</p>
