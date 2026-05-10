@@ -92,6 +92,19 @@ export default function ClientFeedback() {
       return;
     }
 
+    // Anti-spam: honeypot field must remain empty
+    if (honeypot.trim() !== "") {
+      console.warn("[feedback] honeypot triggered");
+      setStep('success'); // pretend success to not tip off bots
+      return;
+    }
+
+    // Anti-spam: minimum 3s on the form (humans take longer than that)
+    if (Date.now() - formStartedAt < 3000) {
+      toast.error("Por favor, preencha o formulário com calma antes de enviar.");
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.from('client_feedbacks').insert({
