@@ -132,6 +132,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
                   return (
                     <button
                       key={item.id}
+                      data-tour={`sidebar-${item.id}`}
                       onClick={() => handleItemClick(item.id)}
                       title={!isOpen ? item.label : undefined}
                       className={cn(
@@ -166,6 +167,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
               return (
                 <button
                   key={item.id}
+                  data-tour={`sidebar-${item.id}`}
                   onClick={() => handleItemClick(item.id)}
                   title={!isOpen ? item.label : undefined}
                   className={cn(
@@ -214,6 +216,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
                   return (
                     <button
                       key={item.id}
+                      data-tour={`sidebar-${item.id}`}
                       onClick={() => handleItemClick(item.id)}
                       title={!isOpen ? item.label : undefined}
                       className={cn(
@@ -243,6 +246,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
             return (
               <button
                 key={item.id}
+                data-tour={`sidebar-${item.id}`}
                 onClick={() => handleItemClick(item.id)}
                 title={!isOpen ? item.label : undefined}
                 className={cn(
