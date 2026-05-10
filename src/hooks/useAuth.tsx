@@ -36,33 +36,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [hasManagerRole, setHasManagerRole] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-    if (!error && data) {
-      setProfile({
-        id: data.id,
-        full_name: data.full_name,
-        role: data.role,
-        is_supervisor: data.is_supervisor || false,
-        profile_completed: data.profile_completed || false,
-        birth_date: data.birth_date,
-        shift: data.shift,
-        custom_role: data.custom_role,
-        clinic: data.clinic || null,
-      });
+      if (error) {
+        console.error("[useAuth] fetchProfile error:", error);
+        return;
+      }
+
+      if (data) {
+        setProfile({
+          id: data.id,
+          full_name: data.full_name,
+          role: data.role,
+          is_supervisor: data.is_supervisor || false,
+          profile_completed: data.profile_completed || false,
+          birth_date: data.birth_date,
+          shift: data.shift,
+          custom_role: data.custom_role,
+          clinic: data.clinic || null,
+        });
+      }
+    } catch (e) {
+      console.error("[useAuth] fetchProfile exception:", e);
+    }
+  };
+
+  const fetchManagerRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "gestora")
+        .maybeSingle();
+      if (error) {
+        console.error("[useAuth] fetchManagerRole error:", error);
+        return;
+      }
+      setHasManagerRole(!!data);
+    } catch (e) {
+      console.error("[useAuth] fetchManagerRole exception:", e);
     }
   };
 
   const refreshProfile = async () => {
     if (user) {
-      await fetchProfile(user.id);
+      await Promise.all([fetchProfile(user.id), fetchManagerRole(user.id)]);
     }
   };
 
@@ -73,15 +101,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Defer profile fetch with setTimeout to avoid deadlock
         if (session?.user) {
+          // Defer to avoid deadlock
           setTimeout(() => {
             fetchProfile(session.user.id);
+            fetchManagerRole(session.user.id);
           }, 0);
         } else {
           setProfile(null);
+          setHasManagerRole(false);
         }
-        
+
         setLoading(false);
       }
     );
@@ -90,11 +120,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         fetchProfile(session.user.id);
+        fetchManagerRole(session.user.id);
       }
-      
+
       setLoading(false);
     });
 
@@ -132,8 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
   };
 
-  // Check if user is manager (by email)
-  const isManager = user?.email === "gerenteipfp@gmail.com";
+  // Check if user is manager: dynamic via user_roles, with email as fallback
+  const isManager = hasManagerRole || user?.email === "gerenteipfp@gmail.com";
 
   // Check if user can submit checklist: gestora role OR is_supervisor = true
   const canSubmitChecklist = Boolean(

@@ -22,7 +22,9 @@ export default function ClientFeedback() {
   const [loadingClients, setLoadingClients] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  
+  const [formStartedAt] = useState(() => Date.now());
+  const [honeypot, setHoneypot] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   // Identificação
@@ -87,6 +89,19 @@ export default function ClientFeedback() {
   const handleSubmit = async () => {
     if (overallRating === 0) {
       toast.error("Por favor, avalie sua experiência geral com as estrelas");
+      return;
+    }
+
+    // Anti-spam: honeypot field must remain empty
+    if (honeypot.trim() !== "") {
+      console.warn("[feedback] honeypot triggered");
+      setStep('success'); // pretend success to not tip off bots
+      return;
+    }
+
+    // Anti-spam: minimum 3s on the form (humans take longer than that)
+    if (Date.now() - formStartedAt < 3000) {
+      toast.error("Por favor, preencha o formulário com calma antes de enviar.");
       return;
     }
 
@@ -527,6 +542,18 @@ export default function ClientFeedback() {
             />
           </CardContent>
         </Card>
+
+        {/* Honeypot anti-spam: hidden from users, only bots fill this */}
+        <input
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          aria-hidden="true"
+          style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px', opacity: 0 }}
+        />
 
         {/* Submit Button */}
         <Button 
