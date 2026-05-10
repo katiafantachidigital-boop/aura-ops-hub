@@ -127,13 +127,13 @@ export function SupervisorManagement() {
         return;
       }
 
-      // Create new weekly supervisor record (allowing multiple)
+      // Create permanent supervisor record (no weekly expiration)
       const { error: insertError } = await supabase
         .from("weekly_supervisors")
         .insert({
           user_id: profileId,
           week_start: format(weekStart, "yyyy-MM-dd"),
-          week_end: format(weekEnd, "yyyy-MM-dd"),
+          week_end: "2099-12-31",
           assigned_by: user.id,
         });
 
@@ -238,8 +238,8 @@ export function SupervisorManagement() {
             <div>
               <CardTitle>Supervisores</CardTitle>
               <CardDescription>
-                {format(weekStart, "dd/MM", { locale: ptBR })} - {format(weekEnd, "dd/MM/yyyy", { locale: ptBR })}
-                {currentSupervisors.length > 0 && ` • ${currentSupervisors.length} supervisor${currentSupervisors.length > 1 ? 'es' : ''}`}
+                Permanecem como supervisores até serem removidos
+                {currentSupervisors.length > 0 && ` • ${currentSupervisors.length} ativo${currentSupervisors.length > 1 ? 's' : ''}`}
               </CardDescription>
             </div>
           </div>

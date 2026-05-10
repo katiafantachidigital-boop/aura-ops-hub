@@ -414,7 +414,7 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
                 {collaborator?.is_supervisor && (
                   <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
                     <Crown className="h-3 w-3 mr-1" />
-                    Supervisora da Semana
+                    Supervisor(a)
                   </Badge>
                 )}
               </div>
