@@ -88,6 +88,66 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
   const [racePoints, setRacePoints] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [raceConfig, setRaceConfig] = useState<{ id: string; current_position: number } | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedName, setEditedName] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  const isOwnProfile = !collaboratorId || collaboratorId === user?.id;
+
+  const handleSaveName = async () => {
+    const trimmed = editedName.trim();
+    if (!trimmed || !user) return;
+    setIsSavingName(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ full_name: trimmed })
+        .eq('id', user.id);
+      if (error) throw error;
+      setCollaborator((c) => (c ? { ...c, full_name: trimmed } : c));
+      setIsEditingName(false);
+      toast({ title: "Nome atualizado" });
+    } catch (e) {
+      console.error(e);
+      toast({ title: "Erro", description: "Não foi possível salvar o nome", variant: "destructive" });
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Imagem muito grande", description: "Tamanho máximo: 5 MB", variant: "destructive" });
+      return;
+    }
+    setIsUploadingAvatar(true);
+    try {
+      const ext = file.name.split('.').pop() || 'jpg';
+      const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path);
+      const url = pub.publicUrl;
+      const { error: updErr } = await supabase
+        .from('profiles')
+        .update({ avatar_url: url } as any)
+        .eq('id', user.id);
+      if (updErr) throw updErr;
+      setCollaborator((c) => (c ? { ...c, avatar_url: url } : c));
+      toast({ title: "Foto de perfil atualizada" });
+    } catch (err) {
+      console.error(err);
+      toast({ title: "Erro", description: "Não foi possível enviar a foto", variant: "destructive" });
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
 
   const targetId = collaboratorId || user?.id;
 
