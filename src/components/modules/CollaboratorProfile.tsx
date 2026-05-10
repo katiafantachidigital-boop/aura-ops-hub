@@ -33,6 +33,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
+import { useTour } from "@/hooks/useTour";
 
 interface CollaboratorData {
   id: string;
@@ -381,6 +383,16 @@ export function CollaboratorProfile({ collaboratorId }: CollaboratorProfileProps
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button
+          variant="premium"
+          onClick={() => startTour()}
+          className="gap-2"
+        >
+          <Sparkles className="h-4 w-4" />
+          Passo a passo
+        </Button>
+      </div>
       {/* Header - Profile Card */}
       <Card className="overflow-hidden">
         <div className="h-24 gradient-primary" />
