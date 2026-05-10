@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) {
-      await fetchProfile(user.id);
+      await Promise.all([fetchProfile(user.id), fetchManagerRole(user.id)]);
     }
   };
 
@@ -101,15 +101,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Defer profile fetch with setTimeout to avoid deadlock
         if (session?.user) {
+          // Defer to avoid deadlock
           setTimeout(() => {
             fetchProfile(session.user.id);
+            fetchManagerRole(session.user.id);
           }, 0);
         } else {
           setProfile(null);
+          setHasManagerRole(false);
         }
-        
+
         setLoading(false);
       }
     );
@@ -118,11 +120,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (session?.user) {
         fetchProfile(session.user.id);
+        fetchManagerRole(session.user.id);
       }
-      
+
       setLoading(false);
     });
 
