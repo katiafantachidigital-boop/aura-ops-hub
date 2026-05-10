@@ -256,10 +256,17 @@ export function SalesGoalsModule() {
   const renderTrack = () => {
     if (!config) return null;
 
-    const totalHouses = Math.ceil(config.max_goal);
-    const currentHouse = Math.min(Math.floor(config.current_value), totalHouses);
-    const minPosition = Math.floor(config.min_goal);
-    const midPosition = Math.floor(config.mid_goal);
+    // Cap visual houses to keep rendering performant regardless of monetary scale.
+    const MAX_VISUAL_HOUSES = 100;
+    const rawTotal = Math.max(1, Math.ceil(config.max_goal));
+    const totalHouses = Math.min(rawTotal, MAX_VISUAL_HOUSES);
+    const scale = totalHouses / rawTotal; // maps real value -> visual houses
+    const currentHouse = Math.min(
+      Math.floor(config.current_value * scale),
+      totalHouses
+    );
+    const minPosition = Math.max(1, Math.min(totalHouses, Math.floor(config.min_goal * scale)));
+    const midPosition = Math.max(1, Math.min(totalHouses, Math.floor(config.mid_goal * scale)));
     const maxPosition = totalHouses;
 
     // Calculate how many houses to show per row based on total
