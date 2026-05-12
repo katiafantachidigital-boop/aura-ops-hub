@@ -141,7 +141,7 @@ export function CaixaModule() {
   };
 
   const handleSubmit = async () => {
-    const value = parseCurrency(totalValue);
+    const value = totalValue;
     
     if (!value || value <= 0) {
       toast.error("Digite um valor válido");
@@ -149,11 +149,11 @@ export function CaixaModule() {
     }
 
     // Validate at least one payment method
-    const pix = parseCurrency(paymentPix);
-    const credit = parseCurrency(paymentCredit);
-    const debit = parseCurrency(paymentDebit);
-    const boleto = parseCurrency(paymentBoleto);
-    const cash = parseCurrency(paymentCash);
+    const pix = paymentPix;
+    const credit = paymentCredit;
+    const debit = paymentDebit;
+    const boleto = paymentBoleto;
+    const cash = paymentCash;
 
     const totalPayments = pix + credit + debit + boleto + cash;
     if (totalPayments === 0) {
@@ -189,12 +189,12 @@ export function CaixaModule() {
       setEntries([data, ...entries]);
       
       // Reset form
-      setTotalValue("");
-      setPaymentPix("");
-      setPaymentCredit("");
-      setPaymentDebit("");
-      setPaymentBoleto("");
-      setPaymentCash("");
+      setTotalValue(0);
+      setPaymentPix(0);
+      setPaymentCredit(0);
+      setPaymentDebit(0);
+      setPaymentBoleto(0);
+      setPaymentCash(0);
       
       toast.success(`Lançamento de R$ ${value.toFixed(2)} registrado!`);
     } catch (error) {
