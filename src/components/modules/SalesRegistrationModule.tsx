@@ -290,7 +290,7 @@ export function SalesRegistrationModule() {
 
               <Button 
                 onClick={handleSubmitSale} 
-                disabled={isSubmitting || !totalValue || parseFloat(totalValue) <= 0}
+                disabled={isSubmitting || totalValue <= 0}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 {isSubmitting ? (
