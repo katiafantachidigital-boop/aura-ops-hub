@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +55,7 @@ export function SalesRegistrationModule() {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   // Form states - simplified: just value and optional quantity
-  const [totalValue, setTotalValue] = useState("");
+  const [totalValue, setTotalValue] = useState<number>(0);
   const [salesQuantity, setSalesQuantity] = useState("");
 
   useEffect(() => {
@@ -100,7 +101,7 @@ export function SalesRegistrationModule() {
       return;
     }
 
-    const value = parseFloat(totalValue) || 0;
+    const value = totalValue;
     const quantity = parseInt(salesQuantity) || 0;
 
     if (value <= 0) {
@@ -167,7 +168,7 @@ export function SalesRegistrationModule() {
       setEvents([eventData, ...events]);
       
       // Reset form
-      setTotalValue("");
+      setTotalValue(0);
       setSalesQuantity("");
       
       toast.success(`Venda de R$ ${value.toFixed(2)} registrada! (+5 pontos)`);
@@ -262,13 +263,9 @@ export function SalesRegistrationModule() {
                   <DollarSign className="w-4 h-4" />
                   Valor da Venda (R$) *
                 </Label>
-                <Input
-                  type="number"
+                <CurrencyInput
                   value={totalValue}
-                  onChange={(e) => setTotalValue(e.target.value)}
-                  placeholder="0.00"
-                  min="0.01"
-                  step="0.01"
+                  onValueChange={setTotalValue}
                   className="text-lg"
                 />
                 <p className="text-xs text-muted-foreground">
@@ -293,7 +290,7 @@ export function SalesRegistrationModule() {
 
               <Button 
                 onClick={handleSubmitSale} 
-                disabled={isSubmitting || !totalValue || parseFloat(totalValue) <= 0}
+                disabled={isSubmitting || totalValue <= 0}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 {isSubmitting ? (

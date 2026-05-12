@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -92,15 +93,15 @@ export function CaixaModule() {
   const [entries, setEntries] = useState<CashRegisterEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [totalValue, setTotalValue] = useState("");
+  const [totalValue, setTotalValue] = useState<number>(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   
-  // Payment method states
-  const [paymentPix, setPaymentPix] = useState("");
-  const [paymentCredit, setPaymentCredit] = useState("");
-  const [paymentDebit, setPaymentDebit] = useState("");
-  const [paymentBoleto, setPaymentBoleto] = useState("");
-  const [paymentCash, setPaymentCash] = useState("");
+  // Payment method states (numeric BRL values)
+  const [paymentPix, setPaymentPix] = useState<number>(0);
+  const [paymentCredit, setPaymentCredit] = useState<number>(0);
+  const [paymentDebit, setPaymentDebit] = useState<number>(0);
+  const [paymentBoleto, setPaymentBoleto] = useState<number>(0);
+  const [paymentCash, setPaymentCash] = useState<number>(0);
 
   // Filter states
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
@@ -140,7 +141,7 @@ export function CaixaModule() {
   };
 
   const handleSubmit = async () => {
-    const value = parseCurrency(totalValue);
+    const value = totalValue;
     
     if (!value || value <= 0) {
       toast.error("Digite um valor válido");
@@ -148,11 +149,11 @@ export function CaixaModule() {
     }
 
     // Validate at least one payment method
-    const pix = parseCurrency(paymentPix);
-    const credit = parseCurrency(paymentCredit);
-    const debit = parseCurrency(paymentDebit);
-    const boleto = parseCurrency(paymentBoleto);
-    const cash = parseCurrency(paymentCash);
+    const pix = paymentPix;
+    const credit = paymentCredit;
+    const debit = paymentDebit;
+    const boleto = paymentBoleto;
+    const cash = paymentCash;
 
     const totalPayments = pix + credit + debit + boleto + cash;
     if (totalPayments === 0) {
@@ -188,12 +189,12 @@ export function CaixaModule() {
       setEntries([data, ...entries]);
       
       // Reset form
-      setTotalValue("");
-      setPaymentPix("");
-      setPaymentCredit("");
-      setPaymentDebit("");
-      setPaymentBoleto("");
-      setPaymentCash("");
+      setTotalValue(0);
+      setPaymentPix(0);
+      setPaymentCredit(0);
+      setPaymentDebit(0);
+      setPaymentBoleto(0);
+      setPaymentCash(0);
       
       toast.success(`Lançamento de R$ ${value.toFixed(2)} registrado!`);
     } catch (error) {
@@ -489,14 +490,14 @@ export function CaixaModule() {
                 <DollarSign className="w-4 h-4" />
                 Valor Total das Vendas de Hoje (R$) *
               </Label>
-              <Input
-                type="text"
-                inputMode="decimal"
+              <CurrencyInput
                 value={totalValue}
-                onChange={(e) => setTotalValue(sanitizeCurrencyInput(e.target.value))}
-                placeholder="0,00"
+                onValueChange={setTotalValue}
                 className="text-lg"
               />
+              <p className="text-xs text-muted-foreground">
+                Digite apenas números — os centavos preenchem da direita pra esquerda automaticamente.
+              </p>
             </div>
 
             {/* Payment Methods - Required */}
@@ -513,15 +514,8 @@ export function CaixaModule() {
                     <Receipt className="w-4 h-4 text-green-500" />
                   </div>
                   <div className="flex-1">
-                    <Label className="text-xs text-muted-foreground">PIX (R$)</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={paymentPix}
-                      onChange={(e) => setPaymentPix(sanitizeCurrencyInput(e.target.value))}
-                      placeholder="0,00"
-                      className="h-8"
-                    />
+                    <Label className="text-xs text-muted-foreground">PIX</Label>
+                    <CurrencyInput value={paymentPix} onValueChange={setPaymentPix} />
                   </div>
                 </div>
 
@@ -530,15 +524,8 @@ export function CaixaModule() {
                     <CreditCard className="w-4 h-4 text-blue-500" />
                   </div>
                   <div className="flex-1">
-                    <Label className="text-xs text-muted-foreground">Crédito (R$)</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={paymentCredit}
-                      onChange={(e) => setPaymentCredit(sanitizeCurrencyInput(e.target.value))}
-                      placeholder="0,00"
-                      className="h-8"
-                    />
+                    <Label className="text-xs text-muted-foreground">Crédito</Label>
+                    <CurrencyInput value={paymentCredit} onValueChange={setPaymentCredit} />
                   </div>
                 </div>
 
@@ -547,15 +534,8 @@ export function CaixaModule() {
                     <CreditCard className="w-4 h-4 text-purple-500" />
                   </div>
                   <div className="flex-1">
-                    <Label className="text-xs text-muted-foreground">Débito (R$)</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={paymentDebit}
-                      onChange={(e) => setPaymentDebit(sanitizeCurrencyInput(e.target.value))}
-                      placeholder="0,00"
-                      className="h-8"
-                    />
+                    <Label className="text-xs text-muted-foreground">Débito</Label>
+                    <CurrencyInput value={paymentDebit} onValueChange={setPaymentDebit} />
                   </div>
                 </div>
 
@@ -564,15 +544,8 @@ export function CaixaModule() {
                     <Wallet className="w-4 h-4 text-orange-500" />
                   </div>
                   <div className="flex-1">
-                    <Label className="text-xs text-muted-foreground">Boleto (R$)</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={paymentBoleto}
-                      onChange={(e) => setPaymentBoleto(sanitizeCurrencyInput(e.target.value))}
-                      placeholder="0,00"
-                      className="h-8"
-                    />
+                    <Label className="text-xs text-muted-foreground">Boleto</Label>
+                    <CurrencyInput value={paymentBoleto} onValueChange={setPaymentBoleto} />
                   </div>
                 </div>
 
@@ -581,15 +554,8 @@ export function CaixaModule() {
                     <Banknote className="w-4 h-4 text-emerald-500" />
                   </div>
                   <div className="flex-1">
-                    <Label className="text-xs text-muted-foreground">Dinheiro (R$)</Label>
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={paymentCash}
-                      onChange={(e) => setPaymentCash(sanitizeCurrencyInput(e.target.value))}
-                      placeholder="0,00"
-                      className="h-8"
-                    />
+                    <Label className="text-xs text-muted-foreground">Dinheiro</Label>
+                    <CurrencyInput value={paymentCash} onValueChange={setPaymentCash} />
                   </div>
                 </div>
               </div>
@@ -597,7 +563,7 @@ export function CaixaModule() {
 
             <Button 
               onClick={handleSubmit} 
-              disabled={isSubmitting || !totalValue || parseFloat(totalValue) <= 0 || (
+              disabled={isSubmitting || totalValue <= 0 || (
                 !paymentPix && !paymentCredit && !paymentDebit && !paymentBoleto && !paymentCash
               )}
               className="w-full bg-emerald-600 hover:bg-emerald-700"
