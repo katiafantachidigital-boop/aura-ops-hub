@@ -93,15 +93,15 @@ export function CaixaModule() {
   const [entries, setEntries] = useState<CashRegisterEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [totalValue, setTotalValue] = useState("");
+  const [totalValue, setTotalValue] = useState<number>(0);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   
-  // Payment method states
-  const [paymentPix, setPaymentPix] = useState("");
-  const [paymentCredit, setPaymentCredit] = useState("");
-  const [paymentDebit, setPaymentDebit] = useState("");
-  const [paymentBoleto, setPaymentBoleto] = useState("");
-  const [paymentCash, setPaymentCash] = useState("");
+  // Payment method states (numeric BRL values)
+  const [paymentPix, setPaymentPix] = useState<number>(0);
+  const [paymentCredit, setPaymentCredit] = useState<number>(0);
+  const [paymentDebit, setPaymentDebit] = useState<number>(0);
+  const [paymentBoleto, setPaymentBoleto] = useState<number>(0);
+  const [paymentCash, setPaymentCash] = useState<number>(0);
 
   // Filter states
   const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
