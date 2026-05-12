@@ -55,7 +55,7 @@ export function SalesRegistrationModule() {
   const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   // Form states - simplified: just value and optional quantity
-  const [totalValue, setTotalValue] = useState("");
+  const [totalValue, setTotalValue] = useState<number>(0);
   const [salesQuantity, setSalesQuantity] = useState("");
 
   useEffect(() => {
