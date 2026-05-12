@@ -101,7 +101,7 @@ export function SalesRegistrationModule() {
       return;
     }
 
-    const value = parseFloat(totalValue) || 0;
+    const value = totalValue;
     const quantity = parseInt(salesQuantity) || 0;
 
     if (value <= 0) {
