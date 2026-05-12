@@ -263,13 +263,9 @@ export function SalesRegistrationModule() {
                   <DollarSign className="w-4 h-4" />
                   Valor da Venda (R$) *
                 </Label>
-                <Input
-                  type="number"
+                <CurrencyInput
                   value={totalValue}
-                  onChange={(e) => setTotalValue(e.target.value)}
-                  placeholder="0.00"
-                  min="0.01"
-                  step="0.01"
+                  onValueChange={setTotalValue}
                   className="text-lg"
                 />
                 <p className="text-xs text-muted-foreground">
