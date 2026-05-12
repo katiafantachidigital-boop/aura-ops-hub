@@ -168,7 +168,7 @@ export function SalesRegistrationModule() {
       setEvents([eventData, ...events]);
       
       // Reset form
-      setTotalValue("");
+      setTotalValue(0);
       setSalesQuantity("");
       
       toast.success(`Venda de R$ ${value.toFixed(2)} registrada! (+5 pontos)`);
