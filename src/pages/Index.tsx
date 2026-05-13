@@ -40,6 +40,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "feedback-history": { title: "Histórico de Avaliações", subtitle: "Avaliações dos clientes" },
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
   spreadsheets: { title: "Planilhas", subtitle: "Crie e gerencie planilhas" },
+  prospeccao: { title: "Prospecção", subtitle: "Controle diário de prospecções (auto-salvo)" },
   profile: { title: "Meu Perfil", subtitle: "Seu perfil profissional" },
 };
 
