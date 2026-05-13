@@ -17,7 +17,8 @@ import {
   Wallet,
   AlertTriangle,
   DollarSign,
-  Sheet
+  Sheet,
+  FileSpreadsheet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
