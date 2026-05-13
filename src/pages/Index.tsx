@@ -108,6 +108,8 @@ const Index = () => {
         return <OccurrencesModule />;
       case "spreadsheets":
         return <SpreadsheetModule />;
+      case "prospeccao":
+        return <ProspeccaoModule />;
       case "team":
         return isManager ? <TeamModule /> : <Dashboard />;
       case "supervisor":
