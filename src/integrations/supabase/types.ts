@@ -698,6 +698,36 @@ export type Database = {
         }
         Relationships: []
       }
+      prospeccao_sheets: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          sheet_date: string
+          updated_at: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          id?: string
+          sheet_date?: string
+          updated_at?: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          sheet_date?: string
+          updated_at?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
       ranking_history: {
         Row: {
           checklists_sent: number | null
