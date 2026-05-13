@@ -51,6 +51,153 @@ interface SheetData {
   data: string[][];
 }
 
+// Posições reservadas em data[0] para armazenar metas (não visíveis na grade principal)
+const META_LIG_COL = 95;
+const META_AGEN_COL = 96;
+const META_CONV_COL = 97; // armazenado como % (ex: "20" = 20%)
+
+function readGoals(data: string[][]) {
+  const row0 = data[0] || [];
+  const lig = parseInt(row0[META_LIG_COL] || "") || 35;
+  const agen = parseInt(row0[META_AGEN_COL] || "") || 7;
+  const conv = parseFloat(row0[META_CONV_COL] || "") || 20;
+  return { lig, agen, conv };
+}
+
+function countSim(data: string[][], colIdx: number) {
+  let n = 0;
+  for (let r = 1; r < data.length; r++) {
+    const v = (data[r]?.[colIdx] || "").trim().toLowerCase();
+    if (v === "sim" || v === "s" || v === "✓" || v === "x") n++;
+  }
+  return n;
+}
+
+function evalLabel(pct: number) {
+  if (pct >= 0.9) return { label: "🟢 Ótimo", cls: "text-emerald-600" };
+  if (pct >= 0.7) return { label: "🟡 Esperado", cls: "text-yellow-600" };
+  if (pct >= 0.5) return { label: "🟠 Mínimo", cls: "text-orange-600" };
+  return { label: "🔴 Abaixo", cls: "text-red-600" };
+}
+
+function MetricsPanel({
+  data,
+  readOnly,
+  onGoalsChange,
+}: {
+  data: string[][];
+  readOnly?: boolean;
+  onGoalsChange?: (goals: { lig: number; agen: number; conv: number }) => void;
+}) {
+  const goals = readGoals(data);
+  const ligacoes = countSim(data, 4);
+  const agendamentos = countSim(data, 5);
+  const pctLig = goals.lig > 0 ? ligacoes / goals.lig : 0;
+  const pctAgen = goals.agen > 0 ? agendamentos / goals.agen : 0;
+  const taxaConv = ligacoes > 0 ? agendamentos / ligacoes : 0;
+  const metaConv = goals.conv / 100;
+  const evLig = evalLabel(pctLig);
+  const evAgen = evalLabel(pctAgen);
+  const evConv = ligacoes === 0
+    ? { label: "—", cls: "text-muted-foreground" }
+    : taxaConv >= metaConv * 1.2 ? { label: "🟢 Ótimo", cls: "text-emerald-600" }
+    : taxaConv >= metaConv ? { label: "🟡 Esperado", cls: "text-yellow-600" }
+    : taxaConv >= metaConv * 0.6 ? { label: "🟠 Mínimo", cls: "text-orange-600" }
+    : { label: "🔴 Abaixo", cls: "text-red-600" };
+  const overall =
+    pctLig >= 0.9 && pctAgen >= 0.9 ? { label: "🟢 META BATIDA!", cls: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" }
+    : pctLig >= 0.7 && pctAgen >= 0.7 ? { label: "🟡 NO CAMINHO CERTO", cls: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400" }
+    : pctLig >= 0.5 || pctAgen >= 0.5 ? { label: "🟠 ATENÇÃO NECESSÁRIA", cls: "bg-orange-500/10 text-orange-700 dark:text-orange-400" }
+    : { label: "🔴 REVISAR ESTRATÉGIA", cls: "bg-red-500/10 text-red-700 dark:text-red-400" };
+
+  const setGoal = (key: "lig" | "agen" | "conv", val: string) => {
+    const num = parseFloat(val) || 0;
+    onGoalsChange?.({ ...goals, [key]: num });
+  };
+
+  const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
+
+  return (
+    <Card className="p-4 space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h3 className="text-sm font-semibold">📊 Resumo do Dia</h3>
+        <div className={`text-xs px-3 py-1 rounded-md font-medium ${overall.cls}`}>{overall.label}</div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Ligações */}
+        <div className="border rounded-md p-3 space-y-1">
+          <div className="text-xs text-muted-foreground">📞 Ligações</div>
+          <div className="text-2xl font-bold">{ligacoes} <span className="text-sm font-normal text-muted-foreground">/ {goals.lig}</span></div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-medium">{fmtPct(pctLig)}</span>
+            <span className={evLig.cls}>{evLig.label}</span>
+          </div>
+          <div className="text-[11px] text-muted-foreground">Faltam: {Math.max(goals.lig - ligacoes, 0)}</div>
+          <div className="h-1.5 bg-muted rounded overflow-hidden">
+            <div className="h-full bg-primary" style={{ width: `${Math.min(pctLig * 100, 100)}%` }} />
+          </div>
+          {!readOnly && (
+            <label className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
+              Meta:
+              <input type="number" min={0} value={goals.lig}
+                onChange={(e) => setGoal("lig", e.target.value)}
+                className="w-16 px-1 py-0.5 border rounded bg-background text-foreground text-xs" />
+            </label>
+          )}
+        </div>
+
+        {/* Agendamentos */}
+        <div className="border rounded-md p-3 space-y-1">
+          <div className="text-xs text-muted-foreground">📅 Agendamentos</div>
+          <div className="text-2xl font-bold">{agendamentos} <span className="text-sm font-normal text-muted-foreground">/ {goals.agen}</span></div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-medium">{fmtPct(pctAgen)}</span>
+            <span className={evAgen.cls}>{evAgen.label}</span>
+          </div>
+          <div className="text-[11px] text-muted-foreground">Faltam: {Math.max(goals.agen - agendamentos, 0)}</div>
+          <div className="h-1.5 bg-muted rounded overflow-hidden">
+            <div className="h-full bg-primary" style={{ width: `${Math.min(pctAgen * 100, 100)}%` }} />
+          </div>
+          {!readOnly && (
+            <label className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
+              Meta:
+              <input type="number" min={0} value={goals.agen}
+                onChange={(e) => setGoal("agen", e.target.value)}
+                className="w-16 px-1 py-0.5 border rounded bg-background text-foreground text-xs" />
+            </label>
+          )}
+        </div>
+
+        {/* Conversão */}
+        <div className="border rounded-md p-3 space-y-1">
+          <div className="text-xs text-muted-foreground">🔄 Taxa de Conversão</div>
+          <div className="text-2xl font-bold">{fmtPct(taxaConv)}</div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-medium">Meta: {goals.conv}%</span>
+            <span className={evConv.cls}>{evConv.label}</span>
+          </div>
+          <div className="text-[11px] text-muted-foreground">Ligações → Agendamentos</div>
+          <div className="h-1.5 bg-muted rounded overflow-hidden">
+            <div className="h-full bg-primary" style={{ width: `${Math.min((taxaConv / Math.max(metaConv, 0.0001)) * 100, 100)}%` }} />
+          </div>
+          {!readOnly && (
+            <label className="text-[10px] text-muted-foreground flex items-center gap-1 mt-1">
+              Meta %:
+              <input type="number" min={0} max={100} step={1} value={goals.conv}
+                onChange={(e) => setGoal("conv", e.target.value)}
+                className="w-16 px-1 py-0.5 border rounded bg-background text-foreground text-xs" />
+            </label>
+          )}
+        </div>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Marque "Sim" nas colunas <strong>Ligou?</strong> e <strong>Agendou?</strong> — os cálculos atualizam automaticamente.
+      </p>
+    </Card>
+  );
+}
+
 function SheetEditor({
   initial,
   readOnly,
