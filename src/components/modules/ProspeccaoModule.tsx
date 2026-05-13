@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Loader2, Download, Archive, FileSpreadsheet, ShieldAlert } from "lucide-react";
+import { Loader2, Archive, FileSpreadsheet, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 
 const COLS = 100;
 const ROWS = 60;
