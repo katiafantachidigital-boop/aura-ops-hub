@@ -5,9 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Loader2, Download, Archive, FileSpreadsheet, ShieldAlert } from "lucide-react";
+import { Loader2, Archive, FileSpreadsheet, ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
-import * as XLSX from "xlsx";
 
 const COLS = 100;
 const ROWS = 60;
@@ -80,26 +79,14 @@ function SheetEditor({
     });
   };
 
-  const downloadXlsx = () => {
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Prospecção");
-    XLSX.writeFile(wb, `prospeccao_${todayISO()}.xlsx`);
-  };
-
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {saving ? (
-            <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
-          ) : !readOnly ? (
-            <>✓ Tudo salvo automaticamente</>
-          ) : null}
-        </div>
-        <Button variant="outline" size="sm" onClick={downloadXlsx}>
-          <Download className="h-4 w-4 mr-2" /> Baixar .xlsx
-        </Button>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground min-h-[20px]">
+        {saving ? (
+          <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
+        ) : !readOnly ? (
+          <>✓ Tudo salvo automaticamente</>
+        ) : null}
       </div>
       <div className="border rounded-md overflow-auto max-h-[70vh] no-screenshot">
         <table className="text-xs border-collapse">
