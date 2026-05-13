@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Save, Trash2, ArrowLeft, Edit2, PlusCircle, MinusCircle, FileSpreadsheet, Globe, Lock } from "lucide-react";
+import { Plus, Save, Trash2, ArrowLeft, Edit2, PlusCircle, MinusCircle, FileSpreadsheet, Globe, Lock, Download } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
@@ -297,16 +298,28 @@ export function SpreadsheetModule() {
             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Pública</span>
           )}
 
-          {editable && (
-            <div className="ml-auto flex gap-2 items-center">
-              {hasUnsavedChanges && (
-                <span className="text-xs text-destructive font-medium">● Não salvo</span>
-              )}
+          <div className="ml-auto flex gap-2 items-center">
+            {hasUnsavedChanges && editable && (
+              <span className="text-xs text-destructive font-medium">● Não salvo</span>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const ws = XLSX.utils.aoa_to_sheet(editingData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Planilha");
+                XLSX.writeFile(wb, `${editingTitle || "planilha"}.xlsx`);
+              }}
+            >
+              <Download className="h-4 w-4 mr-1" /> Baixar
+            </Button>
+            {editable && (
               <Button size="sm" onClick={saveSheet} disabled={saving}>
                 <Save className="h-4 w-4 mr-1" /> {saving ? "Salvando..." : "Salvar"}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {editable && (
