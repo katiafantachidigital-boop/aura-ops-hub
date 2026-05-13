@@ -54,6 +54,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
     { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadAnnouncements },
     { id: "occurrences", label: "Ocorrências", icon: AlertTriangle, badge: unreadOccurrences },
     { id: "spreadsheets", label: "Planilhas", icon: Sheet },
+    { id: "prospeccao", label: "Prospecção", icon: FileSpreadsheet },
   ];
 
   // Management items only for manager
