@@ -140,7 +140,7 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
   const [selectedDate, setSelectedDate] = useState<string>("today");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const saveTimer = useRef<NodeJS.Timeout | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
