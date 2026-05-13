@@ -327,6 +327,16 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
     saveTimer.current = setTimeout(() => persist(data), 600);
   };
 
+  const handleGoalsChange = (goals: { lig: number; agen: number; conv: number }) => {
+    if (!isOwn || !todaySheet) return;
+    const next = todaySheet.data.map((row) => [...row]);
+    if (!next[0]) next[0] = new Array(COLS).fill("");
+    next[0][META_LIG_COL] = String(goals.lig);
+    next[0][META_AGEN_COL] = String(goals.agen);
+    next[0][META_CONV_COL] = String(goals.conv);
+    handleChange(next);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
@@ -338,11 +348,14 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
   // Colaborador: vê apenas a planilha de hoje
   if (!isManager) {
     return (
-      <SheetEditor
-        initial={todaySheet?.data || emptyData()}
-        onChange={handleChange}
-        saving={saving}
-      />
+      <div className="space-y-3">
+        <MetricsPanel data={todaySheet?.data || emptyData()} onGoalsChange={handleGoalsChange} />
+        <SheetEditor
+          initial={todaySheet?.data || emptyData()}
+          onChange={handleChange}
+          saving={saving}
+        />
+      </div>
     );
   }
 
@@ -355,7 +368,8 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
         <TabsTrigger value="today"><FileSpreadsheet className="h-4 w-4 mr-1" /> Hoje</TabsTrigger>
         <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-1" /> Arquivado ({archive.length})</TabsTrigger>
       </TabsList>
-      <TabsContent value="today" className="mt-3">
+      <TabsContent value="today" className="mt-3 space-y-3">
+        <MetricsPanel data={todaySheet?.data || emptyData()} readOnly={!isOwn} onGoalsChange={handleGoalsChange} />
         <SheetEditor initial={todaySheet?.data || emptyData()} readOnly={!isOwn} onChange={handleChange} saving={saving} />
       </TabsContent>
       <TabsContent value="archive" className="mt-3 space-y-3">
@@ -376,7 +390,10 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
               </SelectContent>
             </Select>
             {selectedArchive && (
-              <SheetEditor initial={selectedArchive.data || emptyData()} readOnly />
+              <>
+                <MetricsPanel data={selectedArchive.data || emptyData()} readOnly />
+                <SheetEditor initial={selectedArchive.data || emptyData()} readOnly />
+              </>
             )}
           </>
         )}
