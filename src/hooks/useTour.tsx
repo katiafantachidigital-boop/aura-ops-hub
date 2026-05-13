@@ -101,6 +101,13 @@ const ALL_STEPS: TourStep[] = [
       "Crie e gerencie planilhas estilo Excel diretamente no sistema.",
   },
   {
+    route: "/prospeccao",
+    selector: '[data-tour="sidebar-prospeccao"]',
+    title: "Prospecção",
+    description:
+      "Sua planilha diária de prospecção. Tudo é salvo automaticamente e, à meia-noite, o dia é arquivado. Gestoras podem consultar dias anteriores de cada colaboradora.",
+  },
+  {
     route: "/team",
     selector: '[data-tour="sidebar-team"]',
     title: "Equipe",
