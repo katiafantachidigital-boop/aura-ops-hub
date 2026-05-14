@@ -408,27 +408,21 @@ export function ProspeccaoModule() {
   const [activeUser, setActiveUser] = useState<string>("");
   const [myName, setMyName] = useState<string>("");
 
-  // Anti-screenshot: blur o conteúdo quando a aba perde foco / tecla PrintScreen
+  // Anti-screenshot: oculta o conteúdo somente ao tentar capturar (PrintScreen) ou quando a aba está oculta
   const [obscured, setObscured] = useState(false);
   useEffect(() => {
-    const onVis = () => setObscured(document.visibilityState !== "visible");
-    const onBlur = () => setObscured(true);
-    const onFocus = () => setObscured(false);
+    const onVis = () => setObscured(document.visibilityState === "hidden");
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "PrintScreen" || (e.shiftKey && (e.metaKey || e.ctrlKey))) {
+      if (e.key === "PrintScreen" || (e.shiftKey && (e.metaKey || e.ctrlKey) && (e.key === "S" || e.key === "s" || e.key === "3" || e.key === "4" || e.key === "5"))) {
         setObscured(true);
         setTimeout(() => setObscured(false), 1500);
         try { navigator.clipboard.writeText(""); } catch {}
       }
     };
     document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("blur", onBlur);
-    window.addEventListener("focus", onFocus);
     window.addEventListener("keyup", onKey);
     return () => {
       document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("blur", onBlur);
-      window.removeEventListener("focus", onFocus);
       window.removeEventListener("keyup", onKey);
     };
   }, []);
