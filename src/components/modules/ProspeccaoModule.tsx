@@ -447,7 +447,7 @@ export function ProspeccaoModule() {
       setMyName(profile?.full_name || user!.email || "Usuário");
 
       if (isManager) {
-        // Listar todos os colaboradores que NÃO são gestoras (exclui você e Rosiellen-dona)
+        // Inclui a própria gestora para que ela também possa preencher sua planilha.
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, full_name");
@@ -455,23 +455,24 @@ export function ProspeccaoModule() {
           .from("user_roles")
           .select("user_id, role");
         const managerIds = new Set((roles || []).filter((r: any) => r.role === "gestora").map((r: any) => r.user_id));
-        const list = (profiles || [])
+        const collaborators = (profiles || [])
           .filter((p: any) => !managerIds.has(p.id) && p.id !== user!.id)
           .map((p: any) => ({ id: p.id, full_name: p.full_name || "Sem nome" }))
           .sort((a, b) => a.full_name.localeCompare(b.full_name));
+        const list = [{ id: user!.id, full_name: myName || "Minha planilha" }, ...collaborators];
         setUsers(list);
-        if (list.length) setActiveUser(list[0].id);
+        if (!activeUser && list.length) setActiveUser(user!.id);
       } else {
         setActiveUser(user!.id);
       }
     };
     loadUsers();
-  }, [user, isManager]);
+  }, [user, isManager, myName, activeUser]);
 
   if (!user) return null;
 
   return (
-    <div className="space-y-4 select-none" style={{ WebkitUserSelect: "none" }}>
+    <div className="space-y-4">
       <Card className="p-3 flex items-center gap-2 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
         <ShieldAlert className="h-4 w-4 text-amber-600" />
         <p className="text-xs text-amber-900 dark:text-amber-200">
