@@ -196,6 +196,42 @@ export function TeamModule() {
                     </div>
                   </div>
                 </div>
+                  {isManager && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          disabled={deletingId === member.id}
+                        >
+                          {deletingId === member.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir perfil?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação remove permanentemente o perfil e o cadastro de {member.full_name || "esta pessoa"}. Não pode ser desfeito.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => handleDelete(member.id, member.full_name)}
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Status */}
