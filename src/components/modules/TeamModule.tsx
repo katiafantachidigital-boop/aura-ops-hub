@@ -1,16 +1,29 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
+import { Button } from "@/components/ui/button";
+import {
   Users,
   Star,
   Loader2,
   Crown,
-  MapPin
+  MapPin,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -39,7 +52,26 @@ export function TeamModule() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingClinic, setUpdatingClinic] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { isManager } = useAuth();
+
+  const handleDelete = async (profileId: string, name: string | null) => {
+    setDeletingId(profileId);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { user_id: profileId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setProfiles((prev) => prev.filter((p) => p.id !== profileId));
+      toast.success(`${name || "Perfil"} excluído com sucesso`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Erro ao excluir perfil");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     loadProfiles();
@@ -163,6 +195,41 @@ export function TeamModule() {
                       </p>
                     </div>
                   </div>
+                  {isManager && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          disabled={deletingId === member.id}
+                        >
+                          {deletingId === member.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir perfil?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação remove permanentemente o perfil e o cadastro de {member.full_name || "esta pessoa"}. Não pode ser desfeito.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => handleDelete(member.id, member.full_name)}
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
