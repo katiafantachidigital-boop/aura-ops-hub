@@ -195,7 +195,6 @@ export function TeamModule() {
                       </p>
                     </div>
                   </div>
-                </div>
                   {isManager && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
