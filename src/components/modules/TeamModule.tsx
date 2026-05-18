@@ -1,16 +1,29 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
+import { Button } from "@/components/ui/button";
+import {
   Users,
   Star,
   Loader2,
   Crown,
-  MapPin
+  MapPin,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -39,7 +52,26 @@ export function TeamModule() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingClinic, setUpdatingClinic] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { isManager } = useAuth();
+
+  const handleDelete = async (profileId: string, name: string | null) => {
+    setDeletingId(profileId);
+    try {
+      const { data, error } = await supabase.functions.invoke("delete-user", {
+        body: { user_id: profileId },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setProfiles((prev) => prev.filter((p) => p.id !== profileId));
+      toast.success(`${name || "Perfil"} excluído com sucesso`);
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || "Erro ao excluir perfil");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   useEffect(() => {
     loadProfiles();
