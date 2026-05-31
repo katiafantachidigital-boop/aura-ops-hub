@@ -42,6 +42,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   settings: { title: "Configurações", subtitle: "Configurações do sistema" },
   spreadsheets: { title: "Planilhas", subtitle: "Crie e gerencie planilhas" },
   prospeccao: { title: "Prospecção", subtitle: "Controle diário de prospecções (auto-salvo)" },
+  agenda: { title: "Agenda", subtitle: "Reuniões e compromissos da equipe" },
   profile: { title: "Meu Perfil", subtitle: "Seu perfil profissional" },
 };
 
