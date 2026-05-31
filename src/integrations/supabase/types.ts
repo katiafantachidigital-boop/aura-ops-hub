@@ -553,6 +553,92 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_signatures: {
+        Row: {
+          id: string
+          meeting_id: string
+          signed_at: string
+          signed_name: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          id?: string
+          meeting_id: string
+          signed_at?: string
+          signed_name: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          id?: string
+          meeting_id?: string
+          signed_at?: string
+          signed_name?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_signatures_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          agenda: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          created_by_name: string
+          finalized_at: string | null
+          id: string
+          meeting_date: string
+          meeting_link: string | null
+          meeting_time: string
+          participants: string[]
+          status: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agenda?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          created_by_name: string
+          finalized_at?: string | null
+          id?: string
+          meeting_date: string
+          meeting_link?: string | null
+          meeting_time: string
+          participants?: string[]
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agenda?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          created_by_name?: string
+          finalized_at?: string | null
+          id?: string
+          meeting_date?: string
+          meeting_link?: string | null
+          meeting_time?: string
+          participants?: string[]
+          status?: Database["public"]["Enums"]["meeting_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       occurrence_reads: {
         Row: {
           id: string
@@ -1346,6 +1432,7 @@ export type Database = {
     }
     Enums: {
       app_role: "gestora" | "supervisora" | "colaborador"
+      meeting_status: "scheduled" | "finalized" | "completed"
       race_event_type:
         | "checklist_sent"
         | "checklist_perfect"
@@ -1481,6 +1568,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["gestora", "supervisora", "colaborador"],
+      meeting_status: ["scheduled", "finalized", "completed"],
       race_event_type: [
         "checklist_sent",
         "checklist_perfect",

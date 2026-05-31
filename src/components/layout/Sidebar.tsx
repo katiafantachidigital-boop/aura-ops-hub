@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   DollarSign,
   Sheet,
-  FileSpreadsheet
+  FileSpreadsheet,
+  CalendarDays
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
     { id: "occurrences", label: "Ocorrências", icon: AlertTriangle, badge: unreadOccurrences },
     { id: "spreadsheets", label: "Planilhas", icon: Sheet },
     { id: "prospeccao", label: "Prospecção", icon: FileSpreadsheet },
+    { id: "agenda", label: "Agenda", icon: CalendarDays },
   ];
 
   // Management items only for manager
