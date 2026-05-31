@@ -22,6 +22,7 @@ import { CaixaModule } from "@/components/modules/CaixaModule";
 import { SpreadsheetModule } from "@/components/modules/SpreadsheetModule";
 import { ChecklistHistory } from "@/components/modules/ChecklistHistory";
 import { ProspeccaoModule } from "@/components/modules/ProspeccaoModule";
+import { AgendaModule } from "@/components/modules/AgendaModule";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
