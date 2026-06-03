@@ -619,6 +619,12 @@ export function AnnouncementsModule() {
           </div>
         </div>
       )}
+      <MediaPicker
+        open={showLibraryPicker}
+        onOpenChange={setShowLibraryPicker}
+        onSelect={(f) => { setLibraryFile(f); setFile(null); }}
+        title="Escolher arquivo para o comunicado"
+      />
     </div>
   );
 }
