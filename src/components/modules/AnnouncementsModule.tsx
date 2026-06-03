@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Megaphone, Trash2, FileAudio, File, Download, Loader2, Eye, X, Globe, Lock, Users } from "lucide-react";
+import { Plus, Megaphone, Trash2, FileAudio, File, Download, Loader2, Eye, X, Globe, Lock, Users, FolderOpen } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { MediaPicker, type MediaFile } from "@/components/modules/MediaLibrary/MediaPicker";
 
 interface Announcement {
   id: string;
@@ -42,6 +43,8 @@ export function AnnouncementsModule() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [libraryFile, setLibraryFile] = useState<MediaFile | null>(null);
+  const [showLibraryPicker, setShowLibraryPicker] = useState(false);
   const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
   const [viewingFile, setViewingFile] = useState<{url: string, type: string | null} | null>(null);
   
