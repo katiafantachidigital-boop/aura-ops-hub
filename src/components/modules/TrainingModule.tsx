@@ -449,7 +449,7 @@ export function TrainingModule() {
     }
   };
 
-  const handleCreateContent = async (file?: File) => {
+  const handleCreateContent = async (file?: File, libraryUrl?: string) => {
     if (!selectedModule) {
       toast.error("Nenhum módulo selecionado");
       return;
@@ -465,7 +465,9 @@ export function TrainingModule() {
     try {
       let contentUrl: string | null = null;
       
-      if (file && newContent.content_type !== "text") {
+      if (libraryUrl && newContent.content_type !== "text") {
+        contentUrl = libraryUrl;
+      } else if (file && newContent.content_type !== "text") {
         contentUrl = await handleFileUpload(file);
         if (!contentUrl) {
           setUploadingFile(false);
