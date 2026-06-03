@@ -23,6 +23,7 @@ import { SpreadsheetModule } from "@/components/modules/SpreadsheetModule";
 import { ChecklistHistory } from "@/components/modules/ChecklistHistory";
 import { ProspeccaoModule } from "@/components/modules/ProspeccaoModule";
 import { AgendaModule } from "@/components/modules/AgendaModule";
+import { MediaLibraryModule } from "@/components/modules/MediaLibrary/MediaLibraryModule";
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
@@ -43,6 +44,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   spreadsheets: { title: "Planilhas", subtitle: "Crie e gerencie planilhas" },
   prospeccao: { title: "Prospecção", subtitle: "Controle diário de prospecções (auto-salvo)" },
   agenda: { title: "Agenda", subtitle: "Reuniões e compromissos da equipe" },
+  "media-library": { title: "Biblioteca de Mídia", subtitle: "Galeria central de arquivos para reusar nos módulos" },
   profile: { title: "Meu Perfil", subtitle: "Seu perfil profissional" },
 };
 
@@ -118,6 +120,8 @@ const Index = () => {
         return isManager ? <TeamModule /> : <Dashboard />;
       case "supervisor":
         return isManager ? <SupervisorManagement /> : <Dashboard />;
+      case "media-library":
+        return isManager ? <MediaLibraryModule /> : <Dashboard />;
       case "checklist-history":
         return isManager ? <ChecklistHistory onBack={() => navigate("/")} /> : <Dashboard />;
       case "feedback-history":

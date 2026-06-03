@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Plus, Megaphone, Trash2, FileAudio, File, Download, Loader2, Eye, X, Globe, Lock, Users } from "lucide-react";
+import { Plus, Megaphone, Trash2, FileAudio, File, Download, Loader2, Eye, X, Globe, Lock, Users, FolderOpen } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { MediaPicker, type MediaFile } from "@/components/modules/MediaLibrary/MediaPicker";
 
 interface Announcement {
   id: string;
@@ -42,6 +43,8 @@ export function AnnouncementsModule() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [libraryFile, setLibraryFile] = useState<MediaFile | null>(null);
+  const [showLibraryPicker, setShowLibraryPicker] = useState(false);
   const [readAnnouncements, setReadAnnouncements] = useState<Set<string>>(new Set());
   const [viewingFile, setViewingFile] = useState<{url: string, type: string | null} | null>(null);
   
@@ -184,8 +187,11 @@ export function AnnouncementsModule() {
       let fileUrl: string | null = null;
       let fileType: string | null = null;
 
-      // Upload file if exists
-      if (file) {
+      // Use library file if selected
+      if (libraryFile) {
+        fileUrl = libraryFile.public_url;
+        fileType = libraryFile.mime_type || libraryFile.file_type;
+      } else if (file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
         
@@ -234,6 +240,7 @@ export function AnnouncementsModule() {
     setTitle('');
     setContent('');
     setFile(null);
+    setLibraryFile(null);
     setVisibility('public');
     setSelectedProfiles([]);
   };
@@ -345,16 +352,23 @@ export function AnnouncementsModule() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="file">Anexar arquivo (opcional)</Label>
-                  <Input
-                    id="file"
-                    type="file"
-                    accept="audio/*,image/*,.pdf,.doc,.docx"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                  />
-                  {file && (
-                    <p className="text-sm text-muted-foreground">
-                      Arquivo selecionado: {file.name}
-                    </p>
+                  <div className="flex gap-2">
+                    <Input
+                      id="file"
+                      type="file"
+                      accept="audio/*,image/*,.pdf,.doc,.docx"
+                      onChange={(e) => { setFile(e.target.files?.[0] || null); setLibraryFile(null); }}
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="outline" onClick={() => setShowLibraryPicker(true)}>
+                      <FolderOpen className="h-4 w-4 mr-2" /> Biblioteca
+                    </Button>
+                  </div>
+                  {libraryFile && (
+                    <p className="text-sm text-primary">Da biblioteca: {libraryFile.name}</p>
+                  )}
+                  {file && !libraryFile && (
+                    <p className="text-sm text-muted-foreground">Arquivo selecionado: {file.name}</p>
                   )}
                 </div>
 
@@ -605,6 +619,12 @@ export function AnnouncementsModule() {
           </div>
         </div>
       )}
+      <MediaPicker
+        open={showLibraryPicker}
+        onOpenChange={setShowLibraryPicker}
+        onSelect={(f) => { setLibraryFile(f); setFile(null); }}
+        title="Escolher arquivo para o comunicado"
+      />
     </div>
   );
 }

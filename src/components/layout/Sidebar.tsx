@@ -19,7 +19,8 @@ import {
   DollarSign,
   Sheet,
   FileSpreadsheet,
-  CalendarDays
+  CalendarDays,
+  FolderOpen
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,7 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
   const managementItems = isManager ? [
     { id: "team", label: "Equipe", icon: Users },
     { id: "supervisor", label: "Supervisora", icon: Crown },
+    { id: "media-library", label: "Biblioteca de Mídia", icon: FolderOpen },
     { id: "checklist-history", label: "Histórico de Checklists", icon: History },
     { id: "feedback-history", label: "Histórico de Avaliações", icon: Star },
     { id: "settings", label: "Configurações", icon: Settings },
