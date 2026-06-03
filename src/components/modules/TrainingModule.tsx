@@ -39,10 +39,12 @@ import {
   Award,
   HelpCircle,
   Eye,
+  FolderOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PDFViewer } from "./PDFViewer";
 import { TrainingQuiz, QuizAnswersViewer } from "./TrainingQuiz";
+import { MediaPicker, type MediaFile } from "./MediaLibrary/MediaPicker";
 
 interface Training {
   id: string;
@@ -136,6 +138,7 @@ export function TrainingModule() {
   });
 
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [showLibraryPicker, setShowLibraryPicker] = useState(false);
 
   const userRole = profile?.custom_role || profile?.role || "";
 
