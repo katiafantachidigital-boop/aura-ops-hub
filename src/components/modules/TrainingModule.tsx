@@ -1162,6 +1162,27 @@ export function TrainingModule() {
                     </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-px bg-border flex-1" />
+                  <span className="text-xs text-muted-foreground">ou</span>
+                  <div className="h-px bg-border flex-1" />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={uploadingFile}
+                  onClick={() => {
+                    if (!newContent.title) {
+                      toast.error("Preencha o título antes de escolher da biblioteca");
+                      return;
+                    }
+                    setShowLibraryPicker(true);
+                  }}
+                >
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  Escolher da Biblioteca de Mídia
+                </Button>
                 {!newContent.title && (
                   <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
                     ⚠️ Preencha o título antes de fazer o upload do arquivo
@@ -1172,6 +1193,18 @@ export function TrainingModule() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <MediaPicker
+        open={showLibraryPicker}
+        onOpenChange={setShowLibraryPicker}
+        accept={
+          newContent.content_type === "video" ? ["video"] :
+          newContent.content_type === "audio" ? ["document"] :
+          ["document", "image"]
+        }
+        onSelect={(f: MediaFile) => handleCreateContent(undefined, f.public_url)}
+        title="Escolher conteúdo da Biblioteca"
+      />
 
       {/* Quiz Dialog */}
       <Dialog open={showQuizDialog} onOpenChange={setShowQuizDialog}>
