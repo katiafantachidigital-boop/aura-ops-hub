@@ -24,6 +24,8 @@ import { ChecklistHistory } from "@/components/modules/ChecklistHistory";
 import { ProspeccaoModule } from "@/components/modules/ProspeccaoModule";
 import { AgendaModule } from "@/components/modules/AgendaModule";
 import { MediaLibraryModule } from "@/components/modules/MediaLibrary/MediaLibraryModule";
+import { CommunicationModule } from "@/components/modules/CommunicationModule";
+
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
@@ -34,8 +36,8 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   "sales-registration": { title: "Registrar Venda", subtitle: "Registre vendas realizadas" },
   ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
   training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
-  announcements: { title: "Comunicados", subtitle: "Avisos e recados importantes" },
-  occurrences: { title: "Ocorrências", subtitle: "Registre e acompanhe ocorrências" },
+  announcements: { title: "Comunicados", subtitle: "Comunicados e ocorrências da equipe" },
+
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
   supervisor: { title: "Supervisora", subtitle: "Gestão da supervisão" },
   "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
