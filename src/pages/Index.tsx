@@ -37,6 +37,8 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
   training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
   announcements: { title: "Comunicados", subtitle: "Comunicados e ocorrências da equipe" },
+  occurrences: { title: "Comunicados", subtitle: "Comunicados e ocorrências da equipe" },
+
 
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
   supervisor: { title: "Supervisora", subtitle: "Gestão da supervisão" },
