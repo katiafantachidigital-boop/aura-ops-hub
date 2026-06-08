@@ -100,8 +100,6 @@ const Index = () => {
         return <CaixaModule />;
       case "goals-race":
         return <GoalsRaceModule />;
-      case "sales-goals":
-        return <SalesGoalsModule />;
       case "sales-registration":
         return <SalesRegistrationModule />;
       case "ranking":
@@ -109,9 +107,9 @@ const Index = () => {
       case "training":
         return <TrainingModule />;
       case "announcements":
-        return <AnnouncementsModule />;
       case "occurrences":
-        return <OccurrencesModule />;
+        return <CommunicationModule />;
+
       case "spreadsheets":
         return <SpreadsheetModule />;
       case "prospeccao":
