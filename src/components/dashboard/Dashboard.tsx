@@ -4,7 +4,6 @@ import { StatCard } from "./StatCard";
 import { TeamPerformance } from "./TeamPerformance";
 import { RecentActivity } from "./RecentActivity";
 import { QuickActions } from "./QuickActions";
-import { GoalsProgress } from "./GoalsProgress";
 import { GoalsCalendar } from "./GoalsCalendar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
