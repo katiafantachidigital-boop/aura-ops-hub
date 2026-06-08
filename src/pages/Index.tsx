@@ -32,7 +32,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   checklist: { title: "Checklist Diário", subtitle: "Avaliação diária da equipe" },
   caixa: { title: "Caixa", subtitle: "Registre o valor total das vendas do dia" },
   "goals-race": { title: "Pontuação", subtitle: "Acompanhe o progresso da equipe" },
-  "sales-goals": { title: "Metas de Vendas", subtitle: "Acompanhe as vendas da equipe" },
+  
   "sales-registration": { title: "Registrar Venda", subtitle: "Registre vendas realizadas" },
   ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
   training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
