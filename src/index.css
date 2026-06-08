@@ -6,116 +6,117 @@
 
 @layer base {
   :root {
-    /* Sophisticated emerald & rose gold palette for aesthetic clinics */
-    --background: 40 30% 98%;
-    --foreground: 160 25% 15%;
+    /* White & Gold palette - elegant luxury */
+    --background: 0 0% 100%;
+    --foreground: 38 25% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 160 25% 15%;
+    --card-foreground: 38 25% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 160 25% 15%;
+    --popover-foreground: 38 25% 12%;
 
-    /* Emerald primary - health & wellness */
-    --primary: 160 45% 35%;
-    --primary-foreground: 40 30% 98%;
+    /* Gold primary */
+    --primary: 42 65% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Rose gold secondary - beauty & elegance */
-    --secondary: 15 35% 92%;
-    --secondary-foreground: 15 30% 35%;
+    /* Soft warm secondary */
+    --secondary: 42 40% 95%;
+    --secondary-foreground: 38 35% 25%;
 
-    --muted: 40 20% 94%;
-    --muted-foreground: 160 10% 45%;
+    --muted: 40 25% 96%;
+    --muted-foreground: 38 10% 45%;
 
-    /* Soft coral accent */
-    --accent: 15 60% 88%;
-    --accent-foreground: 15 40% 30%;
+    /* Soft gold accent */
+    --accent: 42 60% 92%;
+    --accent-foreground: 38 40% 25%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 40 20% 90%;
-    --input: 40 20% 90%;
-    --ring: 160 45% 35%;
+    --border: 40 25% 90%;
+    --input: 40 25% 90%;
+    --ring: 42 65% 50%;
 
     --radius: 0.75rem;
 
-    /* Custom colors */
-    --emerald: 160 45% 35%;
-    --emerald-light: 160 40% 92%;
-    --emerald-dark: 160 50% 25%;
-    
-    --rose-gold: 15 50% 75%;
-    --rose-gold-light: 15 35% 95%;
-    --rose-gold-dark: 15 40% 45%;
+    /* Custom colors - aliased to gold for backward compat */
+    --emerald: 42 65% 50%;
+    --emerald-light: 42 60% 94%;
+    --emerald-dark: 38 70% 35%;
 
-    --gold: 38 70% 55%;
-    --gold-light: 38 60% 92%;
+    --rose-gold: 42 65% 70%;
+    --rose-gold-light: 42 50% 95%;
+    --rose-gold-dark: 38 60% 40%;
 
-    --lavender: 270 30% 92%;
-    --lavender-dark: 270 25% 55%;
+    --gold: 42 70% 50%;
+    --gold-light: 42 60% 92%;
+
+    --lavender: 42 30% 94%;
+    --lavender-dark: 38 25% 55%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(160 45% 35%) 0%, hsl(160 50% 45%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(15 50% 75%) 0%, hsl(15 60% 80%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(40 30% 99%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(160 45% 35% / 0.05) 0%, hsl(15 50% 75% / 0.05) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(42 70% 55%) 0%, hsl(38 80% 65%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(42 60% 85%) 0%, hsl(42 70% 92%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(42 40% 99%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(42 65% 50% / 0.08) 0%, hsl(42 80% 70% / 0.05) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px hsl(160 25% 15% / 0.04);
-    --shadow-md: 0 4px 12px hsl(160 25% 15% / 0.06);
-    --shadow-lg: 0 8px 24px hsl(160 25% 15% / 0.08);
-    --shadow-glow: 0 0 40px hsl(160 45% 35% / 0.15);
+    --shadow-sm: 0 1px 2px hsl(38 25% 12% / 0.04);
+    --shadow-md: 0 4px 12px hsl(38 25% 12% / 0.06);
+    --shadow-lg: 0 8px 24px hsl(38 25% 12% / 0.08);
+    --shadow-glow: 0 0 40px hsl(42 65% 50% / 0.2);
 
-    /* Sidebar */
-    --sidebar-background: 160 25% 12%;
-    --sidebar-foreground: 40 30% 95%;
-    --sidebar-primary: 160 45% 45%;
+    /* Sidebar - white with gold accents */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 38 25% 18%;
+    --sidebar-primary: 42 65% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 25% 18%;
-    --sidebar-accent-foreground: 40 30% 95%;
-    --sidebar-border: 160 25% 20%;
-    --sidebar-ring: 160 45% 45%;
+    --sidebar-accent: 42 50% 95%;
+    --sidebar-accent-foreground: 38 40% 25%;
+    --sidebar-border: 40 25% 90%;
+    --sidebar-ring: 42 65% 50%;
   }
 
   .dark {
-    --background: 160 25% 8%;
-    --foreground: 40 30% 95%;
+    --background: 38 20% 8%;
+    --foreground: 42 40% 95%;
 
-    --card: 160 25% 12%;
-    --card-foreground: 40 30% 95%;
+    --card: 38 20% 12%;
+    --card-foreground: 42 40% 95%;
 
-    --popover: 160 25% 12%;
-    --popover-foreground: 40 30% 95%;
+    --popover: 38 20% 12%;
+    --popover-foreground: 42 40% 95%;
 
-    --primary: 160 45% 50%;
-    --primary-foreground: 160 25% 8%;
+    --primary: 42 70% 55%;
+    --primary-foreground: 38 25% 10%;
 
-    --secondary: 15 25% 20%;
-    --secondary-foreground: 15 35% 90%;
+    --secondary: 38 15% 20%;
+    --secondary-foreground: 42 40% 90%;
 
-    --muted: 160 20% 18%;
-    --muted-foreground: 40 15% 60%;
+    --muted: 38 15% 18%;
+    --muted-foreground: 42 15% 60%;
 
-    --accent: 15 30% 25%;
-    --accent-foreground: 15 35% 90%;
+    --accent: 42 30% 25%;
+    --accent-foreground: 42 40% 90%;
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 160 20% 20%;
-    --input: 160 20% 20%;
-    --ring: 160 45% 50%;
+    --border: 38 15% 22%;
+    --input: 38 15% 22%;
+    --ring: 42 70% 55%;
 
-    --sidebar-background: 160 30% 6%;
-    --sidebar-foreground: 40 30% 95%;
-    --sidebar-primary: 160 45% 50%;
+    --sidebar-background: 38 20% 8%;
+    --sidebar-foreground: 42 40% 95%;
+    --sidebar-primary: 42 70% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 160 25% 12%;
-    --sidebar-accent-foreground: 40 30% 95%;
-    --sidebar-border: 160 25% 15%;
-    --sidebar-ring: 160 45% 50%;
+    --sidebar-accent: 38 20% 14%;
+    --sidebar-accent-foreground: 42 40% 95%;
+    --sidebar-border: 38 20% 18%;
+    --sidebar-ring: 42 70% 55%;
   }
+
 }
 
 @layer base {
