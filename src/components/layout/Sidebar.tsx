@@ -43,23 +43,19 @@ export function Sidebar({ activeItem, onItemClick, isOpen, onToggle }: SidebarPr
   const { unreadCount: unreadTrainings } = useUnreadTrainings();
   const { unreadCount: unreadOccurrences } = useUnreadOccurrences();
 
-  // Build operation items based on permissions
   const operationItems = [
-    // Only show checklist for manager or supervisor
     ...(canSubmitChecklist ? [{ id: "checklist", label: "Checklist Diário", icon: ClipboardCheck }] : []),
-    // Only show caixa for manager or supervisor
     ...(canSubmitChecklist ? [{ id: "caixa", label: "Caixa", icon: Wallet }] : []),
     { id: "goals-race", label: "Pontuação", icon: Target },
-    { id: "sales-goals", label: "Metas de Vendas", icon: DollarSign },
     { id: "sales-registration", label: "Registrar Venda", icon: DollarSign },
     { id: "ranking", label: "Ranking", icon: Trophy },
     { id: "training", label: "Treinamentos", icon: GraduationCap, badge: unreadTrainings },
-    { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadAnnouncements },
-    { id: "occurrences", label: "Ocorrências", icon: AlertTriangle, badge: unreadOccurrences },
+    { id: "announcements", label: "Comunicados", icon: Megaphone, badge: unreadAnnouncements + unreadOccurrences },
     { id: "spreadsheets", label: "Planilhas", icon: Sheet },
     { id: "prospeccao", label: "Prospecção", icon: FileSpreadsheet },
     { id: "agenda", label: "Agenda", icon: CalendarDays },
   ];
+
 
   // Management items only for manager
   const managementItems = isManager ? [

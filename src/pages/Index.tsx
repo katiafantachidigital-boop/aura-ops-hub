@@ -24,18 +24,22 @@ import { ChecklistHistory } from "@/components/modules/ChecklistHistory";
 import { ProspeccaoModule } from "@/components/modules/ProspeccaoModule";
 import { AgendaModule } from "@/components/modules/AgendaModule";
 import { MediaLibraryModule } from "@/components/modules/MediaLibrary/MediaLibraryModule";
+import { CommunicationModule } from "@/components/modules/CommunicationModule";
+
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   dashboard: { title: "Dashboard", subtitle: "Visão geral da sua clínica" },
   checklist: { title: "Checklist Diário", subtitle: "Avaliação diária da equipe" },
   caixa: { title: "Caixa", subtitle: "Registre o valor total das vendas do dia" },
   "goals-race": { title: "Pontuação", subtitle: "Acompanhe o progresso da equipe" },
-  "sales-goals": { title: "Metas de Vendas", subtitle: "Acompanhe as vendas da equipe" },
+  
   "sales-registration": { title: "Registrar Venda", subtitle: "Registre vendas realizadas" },
   ranking: { title: "Ranking", subtitle: "Classificação da equipe" },
   training: { title: "Treinamentos", subtitle: "Capacitação e desenvolvimento" },
-  announcements: { title: "Comunicados", subtitle: "Avisos e recados importantes" },
-  occurrences: { title: "Ocorrências", subtitle: "Registre e acompanhe ocorrências" },
+  announcements: { title: "Comunicados", subtitle: "Comunicados e ocorrências da equipe" },
+  occurrences: { title: "Comunicados", subtitle: "Comunicados e ocorrências da equipe" },
+
+
   team: { title: "Equipe", subtitle: "Gerencie sua equipe de profissionais" },
   supervisor: { title: "Supervisora", subtitle: "Gestão da supervisão" },
   "checklist-history": { title: "Histórico de Checklists", subtitle: "Registros anteriores" },
@@ -98,8 +102,6 @@ const Index = () => {
         return <CaixaModule />;
       case "goals-race":
         return <GoalsRaceModule />;
-      case "sales-goals":
-        return <SalesGoalsModule />;
       case "sales-registration":
         return <SalesRegistrationModule />;
       case "ranking":
@@ -107,9 +109,9 @@ const Index = () => {
       case "training":
         return <TrainingModule />;
       case "announcements":
-        return <AnnouncementsModule />;
       case "occurrences":
-        return <OccurrencesModule />;
+        return <CommunicationModule />;
+
       case "spreadsheets":
         return <SpreadsheetModule />;
       case "prospeccao":
