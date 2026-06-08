@@ -427,6 +427,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_goal_overrides: {
+        Row: {
+          clinic: string
+          created_at: string
+          goal_date: string
+          id: string
+          morning_actual: number | null
+          night_actual: number | null
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          clinic: string
+          created_at?: string
+          goal_date: string
+          id?: string
+          morning_actual?: number | null
+          night_actual?: number | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          clinic?: string
+          created_at?: string
+          goal_date?: string
+          id?: string
+          morning_actual?: number | null
+          night_actual?: number | null
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       goals_race_config: {
         Row: {
           clinic: string | null
@@ -720,6 +756,42 @@ export type Database = {
           participants?: string[]
           status?: Database["public"]["Enums"]["meeting_status"]
           title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      monthly_goals: {
+        Row: {
+          clinic: string
+          created_at: string
+          created_by: string | null
+          id: string
+          morning_pct: number
+          period: string
+          saturday_pct: number
+          total_goal: number
+          updated_at: string
+        }
+        Insert: {
+          clinic: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          morning_pct?: number
+          period: string
+          saturday_pct?: number
+          total_goal?: number
+          updated_at?: string
+        }
+        Update: {
+          clinic?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          morning_pct?: number
+          period?: string
+          saturday_pct?: number
+          total_goal?: number
           updated_at?: string
         }
         Relationships: []

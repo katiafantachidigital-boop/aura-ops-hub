@@ -4,7 +4,7 @@ import { StatCard } from "./StatCard";
 import { TeamPerformance } from "./TeamPerformance";
 import { RecentActivity } from "./RecentActivity";
 import { QuickActions } from "./QuickActions";
-import { GoalsProgress } from "./GoalsProgress";
+import { GoalsCalendar } from "./GoalsCalendar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -145,8 +145,13 @@ export function Dashboard() {
     );
   }
 
+  // Managers and supervisors get the goals calendar at the top
+  const showGoalsCalendar = isManager || canSubmitChecklist;
+
   return (
     <div className="space-y-6">
+      {showGoalsCalendar && <GoalsCalendar />}
+
       {/* Stats Grid */}
       {isManager ? (
         <>
@@ -200,7 +205,6 @@ export function Dashboard() {
         </div>
         <div className="space-y-6">
           <QuickActions />
-          <GoalsProgress />
         </div>
       </div>
 
