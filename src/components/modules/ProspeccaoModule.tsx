@@ -270,11 +270,8 @@ function SheetEditor({
 function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string; targetUserName: string }) {
   const { isManager, user } = useAuth();
   const isOwn = user?.id === targetUserId;
-  const today = todayISO();
 
-  const [todaySheet, setTodaySheet] = useState<SheetData | null>(null);
-  const [archive, setArchive] = useState<SheetData[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>("today");
+  const [sheet, setSheet] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -285,18 +282,17 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
       .from("prospeccao_sheets")
       .select("*")
       .eq("user_id", targetUserId)
-      .order("sheet_date", { ascending: false });
+      .eq("sheet_date", PERSISTENT_DATE)
+      .maybeSingle();
 
-    const list = (rows || []) as any[];
-    const todayRow = list.find((r) => r.sheet_date === today);
-    setTodaySheet(
-      todayRow
-        ? { ...todayRow, data: Array.isArray(todayRow.data) ? todayRow.data : emptyData() }
-        : { user_id: targetUserId, user_name: targetUserName, sheet_date: today, data: emptyData() }
+    const row = rows as any;
+    setSheet(
+      row
+        ? { ...row, data: Array.isArray(row.data) ? row.data : emptyData() }
+        : { user_id: targetUserId, user_name: targetUserName, sheet_date: PERSISTENT_DATE, data: emptyData() }
     );
-    setArchive(list.filter((r) => r.sheet_date !== today).map((r) => ({ ...r, data: r.data })));
     setLoading(false);
-  }, [targetUserId, targetUserName, today]);
+  }, [targetUserId, targetUserName]);
 
   useEffect(() => {
     load();
@@ -312,7 +308,7 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
           {
             user_id: targetUserId,
             user_name: targetUserName,
-            sheet_date: today,
+            sheet_date: PERSISTENT_DATE,
             data: data as any,
           },
           { onConflict: "user_id,sheet_date" }
@@ -320,19 +316,19 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
       setSaving(false);
       if (error) toast.error("Erro ao salvar: " + error.message);
     },
-    [isOwn, targetUserId, targetUserName, today]
+    [isOwn, targetUserId, targetUserName]
   );
 
   const handleChange = (data: string[][]) => {
     if (!isOwn) return;
-    setTodaySheet((prev) => (prev ? { ...prev, data } : prev));
+    setSheet((prev) => (prev ? { ...prev, data } : prev));
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => persist(data), 600);
   };
 
   const handleGoalsChange = (goals: { lig: number; agen: number; conv: number }) => {
-    if (!isOwn || !todaySheet) return;
-    const next = todaySheet.data.map((row) => [...row]);
+    if (!isOwn || !sheet) return;
+    const next = sheet.data.map((row) => [...row]);
     if (!next[0]) next[0] = new Array(COLS).fill("");
     next[0][META_LIG_COL] = String(goals.lig);
     next[0][META_AGEN_COL] = String(goals.agen);
@@ -348,60 +344,16 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
     );
   }
 
-  // Colaborador: vê apenas a planilha de hoje
-  if (!isManager) {
-    return (
-      <div className="space-y-3">
-        <MetricsPanel data={todaySheet?.data || emptyData()} onGoalsChange={handleGoalsChange} />
-        <SheetEditor
-          initial={todaySheet?.data || emptyData()}
-          onChange={handleChange}
-          saving={saving}
-        />
-      </div>
-    );
-  }
-
-  // Gestora: tabs Hoje / Arquivado
-  const selectedArchive = archive.find((a) => a.sheet_date === selectedDate);
-
   return (
-    <Tabs defaultValue="today" className="w-full">
-      <TabsList>
-        <TabsTrigger value="today"><FileSpreadsheet className="h-4 w-4 mr-1" /> Hoje</TabsTrigger>
-        <TabsTrigger value="archive"><Archive className="h-4 w-4 mr-1" /> Arquivado ({archive.length})</TabsTrigger>
-      </TabsList>
-      <TabsContent value="today" className="mt-3 space-y-3">
-        <MetricsPanel data={todaySheet?.data || emptyData()} readOnly={!isOwn} onGoalsChange={handleGoalsChange} />
-        <SheetEditor initial={todaySheet?.data || emptyData()} readOnly={!isOwn} onChange={handleChange} saving={saving} />
-      </TabsContent>
-      <TabsContent value="archive" className="mt-3 space-y-3">
-        {archive.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">Nenhum dia arquivado ainda.</p>
-        ) : (
-          <>
-            <Select value={selectedDate} onValueChange={setSelectedDate}>
-              <SelectTrigger className="w-full md:w-72">
-                <SelectValue placeholder="Selecione um dia" />
-              </SelectTrigger>
-              <SelectContent>
-                {archive.map((a) => (
-                  <SelectItem key={a.sheet_date} value={a.sheet_date}>
-                    {formatDateBR(a.sheet_date)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedArchive && (
-              <>
-                <MetricsPanel data={selectedArchive.data || emptyData()} readOnly />
-                <SheetEditor initial={selectedArchive.data || emptyData()} readOnly />
-              </>
-            )}
-          </>
-        )}
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-3">
+      <MetricsPanel data={sheet?.data || emptyData()} readOnly={!isOwn} onGoalsChange={handleGoalsChange} />
+      <SheetEditor
+        initial={sheet?.data || emptyData()}
+        readOnly={!isOwn}
+        onChange={handleChange}
+        saving={saving}
+      />
+    </div>
   );
 }
 
