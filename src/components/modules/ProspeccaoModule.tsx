@@ -13,8 +13,11 @@ const ROWS = 60;
 
 // Header template baseado na planilha enviada
 const HEADERS = [
-  "Nº", "Nome do Lead", "Telefone", "Horário", "Ligou?", "Agendou?", "Observações",
+  "Nº", "Data", "Nome do Lead", "Telefone", "Horário", "Ligou?", "Agendou?", "Observações",
 ];
+
+// Sentinela: usamos uma única planilha contínua por usuário (sem reset diário).
+const PERSISTENT_DATE = "1970-01-01";
 
 function emptyData(): string[][] {
   const data: string[][] = [];
