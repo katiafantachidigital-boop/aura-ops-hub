@@ -93,8 +93,8 @@ function MetricsPanel({
   onGoalsChange?: (goals: { lig: number; agen: number; conv: number }) => void;
 }) {
   const goals = readGoals(data);
-  const ligacoes = countSim(data, 4);
-  const agendamentos = countSim(data, 5);
+  const ligacoes = countSim(data, 5);
+  const agendamentos = countSim(data, 6);
   const pctLig = goals.lig > 0 ? ligacoes / goals.lig : 0;
   const pctAgen = goals.agen > 0 ? agendamentos / goals.agen : 0;
   const taxaConv = ligacoes > 0 ? agendamentos / ligacoes : 0;
