@@ -291,9 +291,10 @@ function SheetEditor({
   );
 }
 
-function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string; targetUserName: string }) {
-  const { isManager, user } = useAuth();
+function UserSheetView({ targetUserId, targetUserName, mode }: { targetUserId: string; targetUserName: string; mode: "prospeccao" | "atendimentos" }) {
+  const { user } = useAuth();
   const isOwn = user?.id === targetUserId;
+  const sentinel = mode === "atendimentos" ? PERSISTENT_DATE_ATEND : PERSISTENT_DATE;
 
   const [sheet, setSheet] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -302,17 +303,15 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
 
   const load = useCallback(async () => {
     setLoading(true);
-    // 1) Tenta a planilha persistente
     const { data: persistent } = await supabase
       .from("prospeccao_sheets")
       .select("*")
       .eq("user_id", targetUserId)
-      .eq("sheet_date", PERSISTENT_DATE)
+      .eq("sheet_date", sentinel)
       .maybeSingle();
 
     let row: any = persistent;
 
-    // 2) Se não existir (ou estiver vazia), migra a planilha diária mais recente
     const isEmpty = (d: any) => {
       if (!Array.isArray(d)) return true;
       for (let r = 1; r < d.length; r++) {
@@ -324,23 +323,24 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
       return true;
     };
 
-    if (!row || isEmpty(row.data)) {
+    // Migração apenas para prospecção (planilhas diárias antigas)
+    if (mode === "prospeccao" && (!row || isEmpty(row.data))) {
       const { data: latest } = await supabase
         .from("prospeccao_sheets")
         .select("*")
         .eq("user_id", targetUserId)
         .neq("sheet_date", PERSISTENT_DATE)
+        .neq("sheet_date", PERSISTENT_DATE_ATEND)
         .order("sheet_date", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (latest && Array.isArray((latest as any).data) && !isEmpty((latest as any).data)) {
-        row = { ...(latest as any), sheet_date: PERSISTENT_DATE };
-        // Persiste a migração para que vire a planilha contínua
+        row = { ...(latest as any), sheet_date: sentinel };
         await supabase.from("prospeccao_sheets").upsert(
           {
             user_id: targetUserId,
             user_name: (latest as any).user_name || targetUserName,
-            sheet_date: PERSISTENT_DATE,
+            sheet_date: sentinel,
             data: (latest as any).data,
           },
           { onConflict: "user_id,sheet_date" }
@@ -350,11 +350,11 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
 
     setSheet(
       row
-        ? { ...row, sheet_date: PERSISTENT_DATE, data: Array.isArray(row.data) ? row.data : emptyData() }
-        : { user_id: targetUserId, user_name: targetUserName, sheet_date: PERSISTENT_DATE, data: emptyData() }
+        ? { ...row, sheet_date: sentinel, data: Array.isArray(row.data) ? row.data : emptyData(mode) }
+        : { user_id: targetUserId, user_name: targetUserName, sheet_date: sentinel, data: emptyData(mode) }
     );
     setLoading(false);
-  }, [targetUserId, targetUserName]);
+  }, [targetUserId, targetUserName, sentinel, mode]);
 
   useEffect(() => {
     load();
@@ -370,7 +370,7 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
           {
             user_id: targetUserId,
             user_name: targetUserName,
-            sheet_date: PERSISTENT_DATE,
+            sheet_date: sentinel,
             data: data as any,
           },
           { onConflict: "user_id,sheet_date" }
@@ -378,7 +378,7 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
       setSaving(false);
       if (error) toast.error("Erro ao salvar: " + error.message);
     },
-    [isOwn, targetUserId, targetUserName]
+    [isOwn, targetUserId, targetUserName, sentinel]
   );
 
   const handleChange = (data: string[][]) => {
@@ -408,9 +408,11 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
 
   return (
     <div className="space-y-3">
-      <MetricsPanel data={sheet?.data || emptyData()} readOnly={!isOwn} onGoalsChange={handleGoalsChange} />
+      {mode === "prospeccao" && (
+        <MetricsPanel data={sheet?.data || emptyData(mode)} readOnly={!isOwn} onGoalsChange={handleGoalsChange} />
+      )}
       <SheetEditor
-        initial={sheet?.data || emptyData()}
+        initial={sheet?.data || emptyData(mode)}
         readOnly={!isOwn}
         onChange={handleChange}
         saving={saving}
@@ -418,6 +420,7 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
     </div>
   );
 }
+
 
 export function ProspeccaoModule() {
   const { user, isManager } = useAuth();
