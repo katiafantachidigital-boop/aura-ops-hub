@@ -14,14 +14,19 @@ const HEADERS = [
   "Nº", "Data", "Nome do Lead", "Telefone", "Horário", "Ligou?", "Agendou?", "Observações",
 ];
 
+const HEADERS_ATEND = [
+  "Nº", "Nome", "Data", "Hora", "Categoria",
+];
+
 // Sentinela: usamos uma única planilha contínua por usuário (sem reset diário).
 const PERSISTENT_DATE = "1970-01-01";
+const PERSISTENT_DATE_ATEND = "1970-01-02";
 
-function emptyData(): string[][] {
+function emptyData(mode: "prospeccao" | "atendimentos" = "prospeccao"): string[][] {
+  const headers = mode === "atendimentos" ? HEADERS_ATEND : HEADERS;
   const data: string[][] = [];
-  // linha 0: cabeçalhos
   const header = new Array(COLS).fill("");
-  HEADERS.forEach((h, i) => (header[i] = h));
+  headers.forEach((h, i) => (header[i] = h));
   data.push(header);
   for (let i = 1; i < ROWS; i++) {
     const row = new Array(COLS).fill("");
@@ -30,6 +35,7 @@ function emptyData(): string[][] {
   }
   return data;
 }
+
 
 
 interface SheetData {
