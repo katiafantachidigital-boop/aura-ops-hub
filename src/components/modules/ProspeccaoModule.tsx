@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 const COLS = 100;
@@ -215,14 +215,37 @@ function SheetEditor({
     });
   };
 
+  const addRow = () => {
+    if (readOnly) return;
+    setData((prev) => {
+      const next = prev.map((row) => [...row]);
+      const newRow = new Array(COLS).fill("");
+      newRow[0] = String(next.length); // numeração contínua na coluna Nº
+      next.push(newRow);
+      onChange?.(next);
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground min-h-[20px]">
-        {saving ? (
-          <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
-        ) : !readOnly ? (
-          <>✓ Tudo salvo automaticamente</>
-        ) : null}
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground min-h-[20px]">
+        <div className="flex items-center gap-2">
+          {saving ? (
+            <><Loader2 className="h-3 w-3 animate-spin" /> Salvando...</>
+          ) : !readOnly ? (
+            <>✓ Tudo salvo automaticamente</>
+          ) : null}
+        </div>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={addRow}
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-primary text-primary-foreground hover:opacity-90 text-xs font-medium"
+          >
+            <Plus className="h-3 w-3" /> Novo campo
+          </button>
+        )}
       </div>
       <div className="border rounded-md overflow-auto max-h-[70vh] no-screenshot">
         <table className="text-xs border-collapse">
@@ -249,6 +272,15 @@ function SheetEditor({
           </tbody>
         </table>
       </div>
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={addRow}
+          className="inline-flex items-center gap-1 px-3 py-1 rounded-md border border-dashed border-primary/50 text-primary hover:bg-primary/5 text-xs font-medium"
+        >
+          <Plus className="h-3 w-3" /> Adicionar novo campo
+        </button>
+      )}
     </div>
   );
 }
