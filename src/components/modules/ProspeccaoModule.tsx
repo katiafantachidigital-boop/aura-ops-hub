@@ -264,17 +264,55 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: rows } = await supabase
+    // 1) Tenta a planilha persistente
+    const { data: persistent } = await supabase
       .from("prospeccao_sheets")
       .select("*")
       .eq("user_id", targetUserId)
       .eq("sheet_date", PERSISTENT_DATE)
       .maybeSingle();
 
-    const row = rows as any;
+    let row: any = persistent;
+
+    // 2) Se não existir (ou estiver vazia), migra a planilha diária mais recente
+    const isEmpty = (d: any) => {
+      if (!Array.isArray(d)) return true;
+      for (let r = 1; r < d.length; r++) {
+        const line = d[r] || [];
+        for (let c = 1; c < line.length; c++) {
+          if ((line[c] || "").toString().trim() !== "") return false;
+        }
+      }
+      return true;
+    };
+
+    if (!row || isEmpty(row.data)) {
+      const { data: latest } = await supabase
+        .from("prospeccao_sheets")
+        .select("*")
+        .eq("user_id", targetUserId)
+        .neq("sheet_date", PERSISTENT_DATE)
+        .order("sheet_date", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (latest && Array.isArray((latest as any).data) && !isEmpty((latest as any).data)) {
+        row = { ...(latest as any), sheet_date: PERSISTENT_DATE };
+        // Persiste a migração para que vire a planilha contínua
+        await supabase.from("prospeccao_sheets").upsert(
+          {
+            user_id: targetUserId,
+            user_name: (latest as any).user_name || targetUserName,
+            sheet_date: PERSISTENT_DATE,
+            data: (latest as any).data,
+          },
+          { onConflict: "user_id,sheet_date" }
+        );
+      }
+    }
+
     setSheet(
       row
-        ? { ...row, data: Array.isArray(row.data) ? row.data : emptyData() }
+        ? { ...row, sheet_date: PERSISTENT_DATE, data: Array.isArray(row.data) ? row.data : emptyData() }
         : { user_id: targetUserId, user_name: targetUserName, sheet_date: PERSISTENT_DATE, data: emptyData() }
     );
     setLoading(false);
