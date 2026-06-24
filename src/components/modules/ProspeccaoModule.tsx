@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, ShieldAlert } from "lucide-react";
+import { Loader2, ShieldAlert, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 const COLS = 100;
