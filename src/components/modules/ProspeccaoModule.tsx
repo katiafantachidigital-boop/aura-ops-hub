@@ -14,14 +14,19 @@ const HEADERS = [
   "Nº", "Data", "Nome do Lead", "Telefone", "Horário", "Ligou?", "Agendou?", "Observações",
 ];
 
+const HEADERS_ATEND = [
+  "Nº", "Nome", "Data", "Hora", "Categoria",
+];
+
 // Sentinela: usamos uma única planilha contínua por usuário (sem reset diário).
 const PERSISTENT_DATE = "1970-01-01";
+const PERSISTENT_DATE_ATEND = "1970-01-02";
 
-function emptyData(): string[][] {
+function emptyData(mode: "prospeccao" | "atendimentos" = "prospeccao"): string[][] {
+  const headers = mode === "atendimentos" ? HEADERS_ATEND : HEADERS;
   const data: string[][] = [];
-  // linha 0: cabeçalhos
   const header = new Array(COLS).fill("");
-  HEADERS.forEach((h, i) => (header[i] = h));
+  headers.forEach((h, i) => (header[i] = h));
   data.push(header);
   for (let i = 1; i < ROWS; i++) {
     const row = new Array(COLS).fill("");
@@ -30,6 +35,7 @@ function emptyData(): string[][] {
   }
   return data;
 }
+
 
 
 interface SheetData {
@@ -285,9 +291,10 @@ function SheetEditor({
   );
 }
 
-function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string; targetUserName: string }) {
-  const { isManager, user } = useAuth();
+function UserSheetView({ targetUserId, targetUserName, mode }: { targetUserId: string; targetUserName: string; mode: "prospeccao" | "atendimentos" }) {
+  const { user } = useAuth();
   const isOwn = user?.id === targetUserId;
+  const sentinel = mode === "atendimentos" ? PERSISTENT_DATE_ATEND : PERSISTENT_DATE;
 
   const [sheet, setSheet] = useState<SheetData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -296,17 +303,15 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
 
   const load = useCallback(async () => {
     setLoading(true);
-    // 1) Tenta a planilha persistente
     const { data: persistent } = await supabase
       .from("prospeccao_sheets")
       .select("*")
       .eq("user_id", targetUserId)
-      .eq("sheet_date", PERSISTENT_DATE)
+      .eq("sheet_date", sentinel)
       .maybeSingle();
 
     let row: any = persistent;
 
-    // 2) Se não existir (ou estiver vazia), migra a planilha diária mais recente
     const isEmpty = (d: any) => {
       if (!Array.isArray(d)) return true;
       for (let r = 1; r < d.length; r++) {
@@ -318,23 +323,24 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
       return true;
     };
 
-    if (!row || isEmpty(row.data)) {
+    // Migração apenas para prospecção (planilhas diárias antigas)
+    if (mode === "prospeccao" && (!row || isEmpty(row.data))) {
       const { data: latest } = await supabase
         .from("prospeccao_sheets")
         .select("*")
         .eq("user_id", targetUserId)
         .neq("sheet_date", PERSISTENT_DATE)
+        .neq("sheet_date", PERSISTENT_DATE_ATEND)
         .order("sheet_date", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (latest && Array.isArray((latest as any).data) && !isEmpty((latest as any).data)) {
-        row = { ...(latest as any), sheet_date: PERSISTENT_DATE };
-        // Persiste a migração para que vire a planilha contínua
+        row = { ...(latest as any), sheet_date: sentinel };
         await supabase.from("prospeccao_sheets").upsert(
           {
             user_id: targetUserId,
             user_name: (latest as any).user_name || targetUserName,
-            sheet_date: PERSISTENT_DATE,
+            sheet_date: sentinel,
             data: (latest as any).data,
           },
           { onConflict: "user_id,sheet_date" }
@@ -344,11 +350,11 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
 
     setSheet(
       row
-        ? { ...row, sheet_date: PERSISTENT_DATE, data: Array.isArray(row.data) ? row.data : emptyData() }
-        : { user_id: targetUserId, user_name: targetUserName, sheet_date: PERSISTENT_DATE, data: emptyData() }
+        ? { ...row, sheet_date: sentinel, data: Array.isArray(row.data) ? row.data : emptyData(mode) }
+        : { user_id: targetUserId, user_name: targetUserName, sheet_date: sentinel, data: emptyData(mode) }
     );
     setLoading(false);
-  }, [targetUserId, targetUserName]);
+  }, [targetUserId, targetUserName, sentinel, mode]);
 
   useEffect(() => {
     load();
@@ -364,7 +370,7 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
           {
             user_id: targetUserId,
             user_name: targetUserName,
-            sheet_date: PERSISTENT_DATE,
+            sheet_date: sentinel,
             data: data as any,
           },
           { onConflict: "user_id,sheet_date" }
@@ -372,7 +378,7 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
       setSaving(false);
       if (error) toast.error("Erro ao salvar: " + error.message);
     },
-    [isOwn, targetUserId, targetUserName]
+    [isOwn, targetUserId, targetUserName, sentinel]
   );
 
   const handleChange = (data: string[][]) => {
@@ -402,9 +408,11 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
 
   return (
     <div className="space-y-3">
-      <MetricsPanel data={sheet?.data || emptyData()} readOnly={!isOwn} onGoalsChange={handleGoalsChange} />
+      {mode === "prospeccao" && (
+        <MetricsPanel data={sheet?.data || emptyData(mode)} readOnly={!isOwn} onGoalsChange={handleGoalsChange} />
+      )}
       <SheetEditor
-        initial={sheet?.data || emptyData()}
+        initial={sheet?.data || emptyData(mode)}
         readOnly={!isOwn}
         onChange={handleChange}
         saving={saving}
@@ -412,6 +420,7 @@ function UserSheetView({ targetUserId, targetUserName }: { targetUserId: string;
     </div>
   );
 }
+
 
 export function ProspeccaoModule() {
   const { user, isManager } = useAuth();
@@ -483,6 +492,32 @@ export function ProspeccaoModule() {
   if (!user) return null;
 
   return (
+    <ProspeccaoInner
+      user={user}
+      isManager={isManager}
+      users={users}
+      activeUser={activeUser}
+      setActiveUser={setActiveUser}
+      myName={myName}
+      obscured={obscured}
+    />
+  );
+}
+
+function ProspeccaoInner({
+  user, isManager, users, activeUser, setActiveUser, myName, obscured,
+}: {
+  user: { id: string };
+  isManager: boolean;
+  users: { id: string; full_name: string }[];
+  activeUser: string;
+  setActiveUser: (v: string) => void;
+  myName: string;
+  obscured: boolean;
+}) {
+  const [mode, setMode] = useState<"prospeccao" | "atendimentos">("prospeccao");
+
+  return (
     <div className="space-y-4">
       <Card className="p-3 flex items-center gap-2 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
         <ShieldAlert className="h-4 w-4 text-amber-600" />
@@ -490,6 +525,19 @@ export function ProspeccaoModule() {
           Conteúdo protegido. Capturas de tela e impressões são bloqueadas/obscurecidas.
         </p>
       </Card>
+
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-lg font-semibold">
+          {mode === "prospeccao" ? "📞 Prospecção" : "💆 Atendimentos"}
+        </h2>
+        <button
+          type="button"
+          onClick={() => setMode((m) => (m === "prospeccao" ? "atendimentos" : "prospeccao"))}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:opacity-90 text-sm font-medium"
+        >
+          {mode === "prospeccao" ? "Ir para Atendimentos →" : "← Voltar para Prospecção"}
+        </button>
+      </div>
 
       <div className={obscured ? "blur-2xl pointer-events-none transition-all" : "transition-all"}>
         {isManager ? (
@@ -508,15 +556,16 @@ export function ProspeccaoModule() {
               </div>
               {users.map((u) => (
                 <TabsContent key={u.id} value={u.id} className="mt-4">
-                  <UserSheetView targetUserId={u.id} targetUserName={u.full_name} />
+                  <UserSheetView targetUserId={u.id} targetUserName={u.full_name} mode={mode} />
                 </TabsContent>
               ))}
             </Tabs>
           )
         ) : (
-          <UserSheetView targetUserId={user.id} targetUserName={myName} />
+          <UserSheetView targetUserId={user.id} targetUserName={myName} mode={mode} />
         )}
       </div>
+
 
       {obscured && (
         <div className="fixed inset-0 bg-black z-[9999] flex items-center justify-center pointer-events-none">
