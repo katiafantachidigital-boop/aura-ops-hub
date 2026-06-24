@@ -492,6 +492,32 @@ export function ProspeccaoModule() {
   if (!user) return null;
 
   return (
+    <ProspeccaoInner
+      user={user}
+      isManager={isManager}
+      users={users}
+      activeUser={activeUser}
+      setActiveUser={setActiveUser}
+      myName={myName}
+      obscured={obscured}
+    />
+  );
+}
+
+function ProspeccaoInner({
+  user, isManager, users, activeUser, setActiveUser, myName, obscured,
+}: {
+  user: { id: string };
+  isManager: boolean;
+  users: { id: string; full_name: string }[];
+  activeUser: string;
+  setActiveUser: (v: string) => void;
+  myName: string;
+  obscured: boolean;
+}) {
+  const [mode, setMode] = useState<"prospeccao" | "atendimentos">("prospeccao");
+
+  return (
     <div className="space-y-4">
       <Card className="p-3 flex items-center gap-2 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
         <ShieldAlert className="h-4 w-4 text-amber-600" />
@@ -499,6 +525,19 @@ export function ProspeccaoModule() {
           Conteúdo protegido. Capturas de tela e impressões são bloqueadas/obscurecidas.
         </p>
       </Card>
+
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-lg font-semibold">
+          {mode === "prospeccao" ? "📞 Prospecção" : "💆 Atendimentos"}
+        </h2>
+        <button
+          type="button"
+          onClick={() => setMode((m) => (m === "prospeccao" ? "atendimentos" : "prospeccao"))}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:opacity-90 text-sm font-medium"
+        >
+          {mode === "prospeccao" ? "Ir para Atendimentos →" : "← Voltar para Prospecção"}
+        </button>
+      </div>
 
       <div className={obscured ? "blur-2xl pointer-events-none transition-all" : "transition-all"}>
         {isManager ? (
@@ -517,15 +556,16 @@ export function ProspeccaoModule() {
               </div>
               {users.map((u) => (
                 <TabsContent key={u.id} value={u.id} className="mt-4">
-                  <UserSheetView targetUserId={u.id} targetUserName={u.full_name} />
+                  <UserSheetView targetUserId={u.id} targetUserName={u.full_name} mode={mode} />
                 </TabsContent>
               ))}
             </Tabs>
           )
         ) : (
-          <UserSheetView targetUserId={user.id} targetUserName={myName} />
+          <UserSheetView targetUserId={user.id} targetUserName={myName} mode={mode} />
         )}
       </div>
+
 
       {obscured && (
         <div className="fixed inset-0 bg-black z-[9999] flex items-center justify-center pointer-events-none">
